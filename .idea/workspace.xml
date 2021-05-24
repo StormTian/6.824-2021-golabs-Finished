@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="ccfd8ab4-d98f-4f6e-98a3-a203c5641c09" name="Default Changelist" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="GOROOT" path="$PROJECT_DIR$/../../../Softwares/Go" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GoLibraries">
+    <option name="urls">
+      <list>
+        <option value="file://$PROJECT_DIR$" />
+      </list>
+    </option>
+  </component>
+  <component name="ProjectId" id="1skDFLAnm5IrDRctK7xETji1VZJ" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="configurable.Global.GOPATH.is.expanded" value="true" />
+    <property name="configurable.Module.GOPATH.is.expanded" value="false" />
+    <property name="configurable.Project.GOPATH.is.expanded" value="true" />
+    <property name="go.import.settings.migrated" value="true" />
+    <property name="go.sdk.automatically.set" value="true" />
+    <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.detected.package.tslint" value="true" />
+    <property name="node.js.path.for.package.eslint" value="project" />
+    <property name="node.js.path.for.package.tslint" value="project" />
+    <property name="node.js.selected.package.eslint" value="(autodetect)" />
+    <property name="node.js.selected.package.tslint" value="(autodetect)" />
+    <property name="settings.editor.selected.configurable" value="go.vgo" />
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VgoProject">
+    <integration-enabled>true</integration-enabled>
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="-1743" y="75" key="#GOPATH" timestamp="1621407632547">
+      <screen x="-2560" y="-139" width="2048" height="1112" />
+    </state>
+    <state x="-1743" y="75" key="#GOPATH/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1621407632547" />
+    <state x="-1792" y="217" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1621409199623">
+      <screen x="-2560" y="-139" width="2048" height="1112" />
+    </state>
+    <state x="-1792" y="217" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1621409199623" />
+    <state x="-1755" y="171" key="FileChooserDialogImpl" timestamp="1621407625603">
+      <screen x="-2560" y="-139" width="2048" height="1112" />
+    </state>
+    <state x="-1755" y="171" key="FileChooserDialogImpl/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1621407625603" />
+    <state x="-1870" y="78" key="SettingsEditor" timestamp="1621409599993">
+      <screen x="-2560" y="-139" width="2048" height="1112" />
+    </state>
+    <state x="-1870" y="78" key="SettingsEditor/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1621409599993" />
+  </component>
+</project>
