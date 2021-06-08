@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="ccfd8ab4-d98f-4f6e-98a3-a203c5641c09" name="Default Changelist" comment="" />
+    <list default="true" id="ccfd8ab4-d98f-4f6e-98a3-a203c5641c09" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -39,7 +41,7 @@
     <property name="node.js.path.for.package.tslint" value="project" />
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
-    <property name="settings.editor.selected.configurable" value="go.vgo" />
+    <property name="settings.editor.selected.configurable" value="web.server" />
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TypeScriptGeneratedFilesManager">
@@ -49,21 +51,37 @@
     <integration-enabled>true</integration-enabled>
   </component>
   <component name="WindowStateProjectService">
+    <state x="-1943" y="75" key="#Deployment" timestamp="1623151335524">
+      <screen x="-2560" y="-139" width="2048" height="1112" />
+    </state>
+    <state x="-1943" y="75" key="#Deployment/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623151335524" />
     <state x="-1743" y="75" key="#GOPATH" timestamp="1621407632547">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
     <state x="-1743" y="75" key="#GOPATH/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1621407632547" />
+    <state x="-1858" y="159" key="#Options" timestamp="1623149139704">
+      <screen x="-2560" y="-139" width="2048" height="1112" />
+    </state>
+    <state x="-1858" y="159" key="#Options/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623149139704" />
+    <state x="-1897" y="173" width="846" height="694" key="#SSH_Configurations" timestamp="1623150890242">
+      <screen x="-2560" y="-139" width="2048" height="1112" />
+    </state>
+    <state x="-1897" y="173" width="846" height="694" key="#SSH_Configurations/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623150890242" />
     <state x="-1792" y="217" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1621409199623">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
     <state x="-1792" y="217" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1621409199623" />
-    <state x="-1755" y="171" key="FileChooserDialogImpl" timestamp="1621407625603">
+    <state x="-1755" y="171" key="FileChooserDialogImpl" timestamp="1623150644504">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
-    <state x="-1755" y="171" key="FileChooserDialogImpl/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1621407625603" />
-    <state x="-1870" y="78" key="SettingsEditor" timestamp="1621409599993">
+    <state x="-1755" y="171" key="FileChooserDialogImpl/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623150644504" />
+    <state x="-2158" y="84" key="SettingsEditor" timestamp="1623151219357">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
-    <state x="-1870" y="78" key="SettingsEditor/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1621409599993" />
+    <state x="-2158" y="84" key="SettingsEditor/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623151219357" />
+    <state x="-1781" y="170" key="ftp.server.browser" timestamp="1623151333716">
+      <screen x="-2560" y="-139" width="2048" height="1112" />
+    </state>
+    <state x="-1781" y="170" key="ftp.server.browser/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623151333716" />
   </component>
 </project>
