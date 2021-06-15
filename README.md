@@ -5,6 +5,8 @@ See more information about MIT-6.824-2021 Distributed System [here](https://pdos
 
 TODO
 - [ ] Lab 1
+    - go version: 1.15
+    - use dos2unix to transform the format of test-mr.sh and test-mr-many.sh
 - [ ] Lab 2
   - [ ] 2A
   - [ ] 2B
