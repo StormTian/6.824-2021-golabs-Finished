@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="ccfd8ab4-d98f-4f6e-98a3-a203c5641c09" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/deployment.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deployment.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -27,7 +37,12 @@
   </component>
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
-    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="WebServerToolWindowFactoryState" value="true" />
+    <property name="WebServerToolWindowPanel.toolwindow.highlight.mappings" value="true" />
+    <property name="WebServerToolWindowPanel.toolwindow.highlight.symlinks" value="true" />
+    <property name="WebServerToolWindowPanel.toolwindow.show.date" value="false" />
+    <property name="WebServerToolWindowPanel.toolwindow.show.permissions" value="false" />
+    <property name="WebServerToolWindowPanel.toolwindow.show.size" value="false" />
     <property name="configurable.Global.GOPATH.is.expanded" value="true" />
     <property name="configurable.Module.GOPATH.is.expanded" value="false" />
     <property name="configurable.Project.GOPATH.is.expanded" value="true" />
@@ -47,14 +62,26 @@
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
   <component name="VgoProject">
     <integration-enabled>true</integration-enabled>
   </component>
   <component name="WindowStateProjectService">
-    <state x="-1943" y="75" key="#Deployment" timestamp="1623151335524">
+    <state x="-1943" y="75" key="#Deployment" timestamp="1623152134841">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
-    <state x="-1943" y="75" key="#Deployment/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623151335524" />
+    <state x="-1943" y="75" key="#Deployment/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623152134841" />
     <state x="-1743" y="75" key="#GOPATH" timestamp="1621407632547">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
@@ -71,6 +98,10 @@
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
     <state x="-1792" y="217" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1621409199623" />
+    <state x="-2467" y="-46" width="1862" height="926" key="DirDiffDialog" timestamp="1623153985837">
+      <screen x="-2560" y="-139" width="2048" height="1112" />
+    </state>
+    <state x="-2467" y="-46" width="1862" height="926" key="DirDiffDialog/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623153985837" />
     <state x="-1755" y="171" key="FileChooserDialogImpl" timestamp="1623150644504">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>

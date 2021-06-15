@@ -6,8 +6,21 @@ package mr
 // remember to capitalize all names.
 //
 
-import "os"
+import (
+	"log"
+	"os"
+)
 import "strconv"
+
+const Debug = 1
+const (
+	Map = "Map"
+	Reduce = "Reduce"
+)
+
+const (
+	NoTasks = "NoTasks"
+)
 
 //
 // example to show how to declare the arguments
@@ -23,6 +36,24 @@ type ExampleReply struct {
 }
 
 // Add your RPC definitions here.
+type AssignATaskArgs struct {}
+
+type AssignATaskReply struct{
+	Err      string
+	Phase    string // Map or Reduce
+	NReduce  int
+	MMap int
+	TaskID   int
+	Filename string // for map
+}
+
+type FinishATaskArgs struct {
+	Phase  string
+	TaskID int
+}
+
+type FinishATaskReply struct {}
+
 
 
 // Cook up a unique-ish UNIX-domain socket name
@@ -33,4 +64,10 @@ func coordinatorSock() string {
 	s := "/var/tmp/824-mr-"
 	s += strconv.Itoa(os.Getuid())
 	return s
+}
+
+func Dprintf(format string, v ...interface{}) {
+	if Debug > 0 {
+		log.Printf(format, v)
+	}
 }
