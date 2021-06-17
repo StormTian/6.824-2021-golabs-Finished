@@ -155,7 +155,7 @@ func Worker(mapf func(string, string) []KeyValue,
 					}
 					file.Close()
 				}
-				sort.Sort(ByKey(kva))
+				sort.Sort(ByKey(kva)) // for deterministic output
 
 				// write the output file
 				ofile, _ := ioutil.TempFile("/newFS/workspace/src/6.824-2021/src", "out-")
