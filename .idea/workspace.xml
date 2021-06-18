@@ -12,10 +12,8 @@
   <component name="ChangeListManager">
     <list default="true" id="ccfd8ab4-d98f-4f6e-98a3-a203c5641c09" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mr/worker.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/mr/worker.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/raft/config.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/raft/config.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/raft/raft.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/raft/raft.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/raft/util.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/raft/util.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/raft/test-many.sh" beforeDir="false" afterPath="$PROJECT_DIR$/src/raft/test-many.sh" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -100,10 +98,10 @@
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
     <state x="-1897" y="173" width="846" height="694" key="#SSH_Configurations/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623150890242" />
-    <state x="-1792" y="217" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1623923074328">
+    <state x="-1792" y="217" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1623987781558">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
-    <state x="-1792" y="217" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623923074328" />
+    <state x="-1792" y="217" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623987781558" />
     <state x="-2467" y="-46" width="1862" height="926" key="DirDiffDialog" timestamp="1623153985837">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
@@ -116,10 +114,10 @@
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
     <state x="-1755" y="171" key="FileChooserDialogImpl/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623150644504" />
-    <state x="-2158" y="84" key="SettingsEditor" timestamp="1623912127443">
+    <state x="-2158" y="84" key="SettingsEditor" timestamp="1623987669319">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
-    <state x="-2158" y="84" key="SettingsEditor/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623912127443" />
+    <state x="-2158" y="84" key="SettingsEditor/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623987669319" />
     <state x="-1781" y="170" key="ftp.server.browser" timestamp="1623151333716">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>

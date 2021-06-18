@@ -3,19 +3,19 @@
 rm res -rf
 mkdir res
 
-for ((i = 0; i < 5; i++))
+for ((i = 0; i < 40; i++))
 do
 
-    for ((c = $((i*2)); c < $(( (i+1)*2)); c++))
+    for ((c = $((i*3)); c < $(( (i+1)*3)); c++))
     do                  #replace job name here
-         (go test -run 2A -race) &> ./res/$c &
-         # sleep 15
+         (go test -run 2B) &> ./res/$c &
+         # sleep 5
 
     done
 
-    sleep 10
+    sleep 50
 
-    echo "finish 2 iterations."
+    echo "finish 3 iterations."
 
 done
 
