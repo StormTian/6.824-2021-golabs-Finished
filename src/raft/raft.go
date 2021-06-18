@@ -39,7 +39,7 @@ const (
 
 const (
 	heartbeatInterval     = 100 * time.Millisecond
-	checkElectionInterval = 50 * time.Millisecond
+	checkElectionInterval = 20 * time.Millisecond
 	retryInterval         = 50 * time.Millisecond
 	applyInterval         = 50 * time.Millisecond
 )
@@ -283,6 +283,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 	defer rf.unlock(rf.me, "AppendEntries")
 	reply.Term = rf.currentTerm
 	if args.Term < rf.currentTerm {
+		DPrintf("args.Term %d < %d Term %d", args.Term, rf.me, rf.currentTerm)
 		return
 	} else if rf.role == candidate && args.Term == rf.currentTerm ||
 		args.Term > rf.currentTerm {
@@ -290,10 +291,9 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 	}
 	rf.resetTimer()
 	reply.Success = false
-	if len(rf.log) <= args.PrevLogIndex {
-		return
-	}
-	if rf.log[args.PrevLogIndex].Term != args.PrevLogTerm {
+	if len(rf.log) <= args.PrevLogIndex ||
+		rf.log[args.PrevLogIndex].Term != args.PrevLogTerm {
+		DPrintf("log inconsistency %d - %d.", args.LeaderID, rf.me)
 		return
 	}
 	reply.Success = true
@@ -426,13 +426,13 @@ func (rf *Raft) ticker() {
 
 func (rf *Raft) callRequestVote(server int, args *RequestVoteArgs, reply *RequestVoteReply) {
 	for !rf.killed() {
-		DPrintf("callRequestVote %d -> %d", rf.me, server)
+		DPrintf("[RequestVote] RPC call %d -> %d", rf.me, server)
 		ok := rf.sendRequestVote(server, args, reply)
 		if !ok {
 			// retry
 			time.Sleep(retryInterval)
 			rf.lock(rf.me, "callRequestVote retry")
-			if rf.role == candidate {
+			if rf.role == candidate && rf.currentTerm == args.Term {
 				rf.unlock(rf.me, "callRequestVote retry")
 				continue
 			} else {
@@ -511,28 +511,28 @@ func (rf *Raft) oneHeartbeat() (isLeader bool) {
 
 func (rf *Raft) callAppendEntries(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) {
 	for !rf.killed() {
-		DPrintf("callAppendEntries %d -> %d\n%v", rf.me, server, args.Entries)
+		DPrintf("[AppendEntries] RPC call %d -> %d\n%v", rf.me, server, args.Entries)
 		ok := rf.sendAppendEntries(server, args, reply)
 		if !ok {
-			// retry
-			time.Sleep(retryInterval)
-			rf.lock(rf.me, "callAppendEntries retry")
-			if rf.role == leader {
-				rf.unlock(rf.me, "callAppendEntries retry")
-				continue
-			} else {
-				rf.unlock(rf.me, "callAppendEntries retry")
-				return
-			}
+			DPrintf("AppendEntries %d -> %d fail.", rf.me, server)
+			return
+			/*
+				// retry
+				time.Sleep(retryInterval)
+				rf.lock(rf.me, "callAppendEntries retry")
+				if rf.role == leader {
+					rf.unlock(rf.me, "callAppendEntries retry")
+					continue
+				} else {
+					rf.unlock(rf.me, "callAppendEntries retry")
+					return
+				}
+			*/
 		}
 		rf.lock(rf.me, "callAppendEntries")
 		defer rf.unlock(rf.me, "callAppendEntries")
 		if reply.Term > rf.currentTerm {
 			rf.transToFollower(reply.Term)
-			return
-		}
-		if len(args.Entries) == 0 {
-			// heartbeat
 			return
 		}
 		if rf.role != leader {
@@ -541,11 +541,15 @@ func (rf *Raft) callAppendEntries(server int, args *AppendEntriesArgs, reply *Ap
 		}
 		if !reply.Success {
 			// fail, just decrement nI and wait for next heartbeat.
-			rf.nextIndex[server] = args.Entries[0].Index - 1
-			DPrintf("%d -> %d append fail.\nnextIndex[%d] = %d", rf.me, server, server, rf.nextIndex[server])
+			rf.nextIndex[server] = args.PrevLogIndex
+			DPrintf("%d -> %d log inconsistency.\nnextIndex[%d] = %d", rf.me, server, server, rf.nextIndex[server])
 			return
 		}
 		// success
+		if len(args.Entries) == 0 {
+			// heartbeat
+			return
+		}
 		lastAppendedIndex := args.Entries[len(args.Entries)-1].Index
 		rf.nextIndex[server] = lastAppendedIndex + 1
 		rf.matchIndex[server] = lastAppendedIndex
