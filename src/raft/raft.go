@@ -18,6 +18,8 @@ package raft
 //
 
 import (
+	"6.824/labgob"
+	"bytes"
 	"math/rand"
 
 	//	"bytes"
@@ -136,6 +138,17 @@ func (rf *Raft) persist() {
 	// e.Encode(rf.yyy)
 	// data := w.Bytes()
 	// rf.persister.SaveRaftState(data)
+	w := new(bytes.Buffer)
+	e := labgob.NewEncoder(w)
+	// locking
+	// rf.lock(rf.me, "persist")
+	e.Encode(rf.currentTerm)
+	e.Encode(rf.votedFor)
+	e.Encode(rf.log)
+	// rf.unlock(rf.me, "persist")
+	data := w.Bytes()
+	rf.persister.SaveRaftState(data)
+	DPrintf("%d RaftStateSize: %v", rf.me, rf.persister.RaftStateSize())
 }
 
 //
@@ -143,6 +156,7 @@ func (rf *Raft) persist() {
 //
 func (rf *Raft) readPersist(data []byte) {
 	if data == nil || len(data) < 1 { // bootstrap without any state?
+		DPrintf("%d no data.", rf.me)
 		return
 	}
 	// Your code here (2C).
@@ -158,6 +172,23 @@ func (rf *Raft) readPersist(data []byte) {
 	//   rf.xxx = xxx
 	//   rf.yyy = yyy
 	// }
+	r := bytes.NewBuffer(data)
+	d := labgob.NewDecoder(r)
+	var currentTermTmp int
+	var votedForTmp int
+	var logTmp []Entry
+	if d.Decode(&currentTermTmp) != nil ||
+		d.Decode(&votedForTmp) != nil ||
+		d.Decode(&logTmp) != nil {
+		DPrintf("decode raft state fail.")
+		return
+	}
+	rf.lock(rf.me, "readPersist")
+	rf.currentTerm = currentTermTmp
+	rf.votedFor = votedForTmp
+	rf.log = logTmp
+	DPrintf("%d log:\n%v", rf.me, rf.log)
+	rf.unlock(rf.me, "readPersist")
 }
 
 //
@@ -222,6 +253,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		if args.LastLogTerm > lastEntry.Term ||
 			args.LastLogTerm == lastEntry.Term && args.LastLogIndex >= lastEntry.Index {
 			rf.votedFor = args.CandidateID
+			rf.persist()
 			reply.VoteGranted = true
 			rf.resetTimer()
 			DPrintf("%d votes to %d", rf.me, args.CandidateID)
@@ -274,13 +306,16 @@ type AppendEntriesArgs struct {
 }
 
 type AppendEntriesReply struct {
-	Term    int
-	Success bool
+	Term          int
+	Success       bool
+	ConflictIndex int
+	ConflictTerm  int
 }
 
 func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
 	rf.lock(rf.me, "AppendEntries")
 	defer rf.unlock(rf.me, "AppendEntries")
+	DPrintf("be called AppendEntries %d -> %d", args.LeaderID, rf.me)
 	reply.Term = rf.currentTerm
 	if args.Term < rf.currentTerm {
 		DPrintf("args.Term %d < %d Term %d", args.Term, rf.me, rf.currentTerm)
@@ -290,16 +325,39 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 		rf.transToFollower(args.Term)
 	}
 	rf.resetTimer()
+
 	reply.Success = false
-	if len(rf.log) <= args.PrevLogIndex ||
-		rf.log[args.PrevLogIndex].Term != args.PrevLogTerm {
-		DPrintf("log inconsistency %d - %d.", args.LeaderID, rf.me)
+	if len(rf.log) <= args.PrevLogIndex {
+		// follower does not have prevLogIndex in its log
+		reply.ConflictIndex = len(rf.log)
+		reply.ConflictTerm = null
+		DPrintf("[not have] log inconsistency %d -> %d.\n"+"ConflictTerm %d, ConflictIndex %d\n"+
+			"follower log: %v\nprev: term %d, index %d",
+			args.LeaderID, rf.me, reply.ConflictTerm, reply.ConflictIndex, rf.log, args.PrevLogTerm, args.PrevLogIndex)
 		return
 	}
+	if rf.log[args.PrevLogIndex].Term != args.PrevLogTerm {
+		reply.ConflictTerm = rf.log[args.PrevLogIndex].Term
+		var i int
+		for i = args.PrevLogIndex - 1; i >= 0; i-- {
+			// DPrintf("%v", rf.log[i])
+			if rf.log[i].Term != reply.ConflictTerm {
+				// DPrintf("break")
+				break
+			}
+		}
+		reply.ConflictIndex = i + 1 // the first index that stores for conflictTerm
+		DPrintf("[conflict] log inconsistency %d -> %d.\n"+"ConflictTerm %d, ConflictIndex %d\n"+
+			"follower log: %v\nprev: term %d, index %d",
+			args.LeaderID, rf.me, reply.ConflictTerm, reply.ConflictIndex, rf.log, args.PrevLogTerm, args.PrevLogIndex)
+		return
+	}
+
 	reply.Success = true
 	for _, entry := range args.Entries {
 		if entry.Index == len(rf.log) {
 			rf.log = append(rf.log, entry)
+			rf.persist()
 			continue
 		}
 		if rf.log[entry.Index].Term != entry.Term {
@@ -307,6 +365,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 			rf.log = rf.log[0:entry.Index]
 			// append this new entry
 			rf.log = append(rf.log, entry)
+			rf.persist()
 		} else {
 			// already have this entry
 		}
@@ -361,6 +420,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 		Command: command,
 	}
 	rf.log = append(rf.log, entry)
+	rf.persist()
 	DPrintf("%d start new entry: term %d, index %d, command %v.",
 		rf.me, term, index, command)
 	go rf.oneHeartbeat()
@@ -403,6 +463,7 @@ func (rf *Raft) ticker() {
 			rf.role = candidate
 			rf.currentTerm++
 			rf.votedFor = rf.me
+			rf.persist()
 			rf.numOfVote = 1
 			rf.resetTimer()
 			// call RequestVote to each other server
@@ -511,10 +572,12 @@ func (rf *Raft) oneHeartbeat() (isLeader bool) {
 
 func (rf *Raft) callAppendEntries(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) {
 	for !rf.killed() {
-		DPrintf("[AppendEntries] RPC call %d -> %d\n%v", rf.me, server, args.Entries)
+		DPrintf("[AppendEntries] RPC call %d -> %d\n"+
+			"args.Term %d, rf.currentTerm %d\n"+
+			"%v", rf.me, server, args.Term, rf.currentTerm, args.Entries)
 		ok := rf.sendAppendEntries(server, args, reply)
 		if !ok {
-			DPrintf("AppendEntries %d -> %d fail.", rf.me, server)
+			// DPrintf("AppendEntries %d -> %d fail.", rf.me, server)
 			return
 			/*
 				// retry
@@ -531,26 +594,61 @@ func (rf *Raft) callAppendEntries(server int, args *AppendEntriesArgs, reply *Ap
 		}
 		rf.lock(rf.me, "callAppendEntries")
 		defer rf.unlock(rf.me, "callAppendEntries")
+		if rf.role != leader || rf.currentTerm != args.Term {
+			// if rf.role != leader {
+			DPrintf("%d get stale reply.", rf.me)
+			return
+		}
+
 		if reply.Term > rf.currentTerm {
 			rf.transToFollower(reply.Term)
 			return
 		}
-		if rf.role != leader {
-			DPrintf("not leader %d.", rf.me)
-			return
-		}
+
 		if !reply.Success {
-			// fail, just decrement nI and wait for next heartbeat.
-			rf.nextIndex[server] = args.PrevLogIndex
-			DPrintf("%d -> %d log inconsistency.\nnextIndex[%d] = %d", rf.me, server, server, rf.nextIndex[server])
+			// log inconsistency, just decrement nI and wait for next heartbeat.
+			if rf.nextIndex[server] != args.PrevLogIndex+1 {
+				return
+			}
+
+			DPrintf("%d -> %d prev: term %d, index %d\n"+
+				"conflictTerm %d, conflictIndex %d\n"+
+				"args.Term %d, rf.currentTerm %d",
+				rf.me, server, args.PrevLogTerm, args.PrevLogIndex, reply.ConflictTerm,
+				reply.ConflictIndex, args.Term, rf.currentTerm)
+			if reply.ConflictTerm == null {
+				rf.nextIndex[server] = reply.ConflictIndex
+			} else {
+				var i int // index of the last entry in conflictTerm in the log
+				for i := args.PrevLogIndex - 1; i > 0; i-- {
+					if rf.log[i].Term == reply.ConflictTerm {
+						break
+					}
+				}
+				if i == 0 {
+					// doesn't find any entry in conflictTerm
+					rf.nextIndex[server] = reply.ConflictIndex
+				} else {
+					// set nextIndex to be the one beyond the index of the last entry
+					// in conflictTerm in the log
+					rf.nextIndex[server] = i + 1
+				}
+			}
+			// rf.nextIndex[server] = args.PrevLogIndex
+			DPrintf("%d -> %d log inconsistency.\nnextIndex[%d] = %d",
+				rf.me, server, server, rf.nextIndex[server])
 			return
 		}
+
 		// success
 		if len(args.Entries) == 0 {
 			// heartbeat
 			return
 		}
 		lastAppendedIndex := args.Entries[len(args.Entries)-1].Index
+		if lastAppendedIndex <= rf.matchIndex[server] {
+			return
+		}
 		rf.nextIndex[server] = lastAppendedIndex + 1
 		rf.matchIndex[server] = lastAppendedIndex
 		DPrintf("%d -> %d append success.\nnextIndex[%d] = %d, matchIndex[%d] = %d.",
@@ -667,5 +765,6 @@ func (rf *Raft) transToFollower(newTerm int) {
 	rf.currentTerm = newTerm
 	rf.role = follower
 	rf.votedFor = null
-	DPrintf("%d term: %d", rf.me, rf.currentTerm)
+	rf.persist()
+	DPrintf("%d trans to follower.\nterm: %d", rf.me, rf.currentTerm)
 }
