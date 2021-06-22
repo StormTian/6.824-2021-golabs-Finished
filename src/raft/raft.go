@@ -109,6 +109,7 @@ type Raft struct {
 
 	lastIncludedTerm  int
 	lastIncludedIndex int
+	// condCh            chan struct{}
 }
 
 // return currentTerm and whether this server
@@ -241,7 +242,11 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapsho
 	}
 	rf.resetTimer()
 
-	if args.LastIncludedIndex >= rf.lastIncludedIndex && args.LastIncludedIndex < rf.getRealLength() &&
+	if args.LastIncludedIndex <= rf.lastIncludedIndex {
+		DPrintf("%d -> %d stale snapshot", args.LeaderID, rf.me)
+		return
+	}
+	if args.LastIncludedIndex < rf.getRealLength() &&
 		rf.log[rf.getPos(args.LastIncludedIndex)].Term == args.LastIncludedTerm {
 		// this snapshot describes a prefix of log due to retransmission or by mistake.
 		// delete entries covered by the snapshot and retain the entries following the snapshot.
@@ -253,9 +258,11 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapsho
 		}
 		rf.log = []Entry{dummyEntry}
 	}
-
 	rf.lastIncludedIndex = args.LastIncludedIndex
 	rf.lastIncludedTerm = args.LastIncludedTerm
+	rf.persistAll(args.Data)
+	rf.commitIndex = rf.lastIncludedIndex
+	rf.lastApplied = rf.lastIncludedIndex
 
 	msg := ApplyMsg{
 		CommandValid:  false,
@@ -265,6 +272,7 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapsho
 		SnapshotIndex: args.LastIncludedIndex,
 	}
 	rf.applyCh <- msg
+
 	return
 }
 
@@ -290,9 +298,11 @@ func (rf *Raft) callInstallSnapshot(server int, args *InstallSnapshotArgs, reply
 			rf.transToFollower(reply.Term)
 			return
 		}
-		// TODO update nI mI?
-		// rf.nextIndex[server]=args.LastIncludedIndex+1
-
+		// success
+		rf.nextIndex[server] = args.LastIncludedIndex + 1
+		rf.matchIndex[server] = args.LastIncludedIndex
+		// LastIncludedIndex surely has been committed, thus don't
+		// need to check update commitIndex
 		return
 	}
 }
@@ -302,12 +312,7 @@ func (rf *Raft) callInstallSnapshot(server int, args *InstallSnapshotArgs, reply
 // have more recent info since it communicate the snapshot on applyCh.
 //
 func (rf *Raft) CondInstallSnapshot(lastIncludedTerm int, lastIncludedIndex int, snapshot []byte) bool {
-
 	// Your code here (2D).
-	rf.lock(rf.me, "CondInstallSnapshot")
-	defer rf.unlock(rf.me, "CondInstallSnapshot")
-
-	rf.persistAll(snapshot)
 	return true
 }
 
@@ -461,12 +466,17 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 
 	reply.Success = false
 	if rf.getRealLength() <= args.PrevLogIndex {
-		// follower does not have prevLogIndex in its log
+		// log is too short
 		reply.ConflictIndex = rf.getRealLength()
 		reply.ConflictTerm = null
 		DPrintf("[not have] log inconsistency %d -> %d.\n"+"ConflictTerm %d, ConflictIndex %d\n"+
 			"follower log: %v\nprev: term %d, index %d",
 			args.LeaderID, rf.me, reply.ConflictTerm, reply.ConflictIndex, rf.log, args.PrevLogTerm, args.PrevLogIndex)
+		return
+	}
+	if args.PrevLogIndex < rf.lastIncludedIndex {
+		reply.ConflictIndex = rf.lastIncludedIndex + 1
+		reply.ConflictTerm = null
 		return
 	}
 	if rf.log[rf.getPos(args.PrevLogIndex)].Term != args.PrevLogTerm {
@@ -822,6 +832,7 @@ func (rf *Raft) applyEntries() {
 		rf.lock(rf.me, "applyEntries")
 		if rf.commitIndex > rf.lastApplied {
 			// exist new entries to apply
+			DPrintf("%d commitIndex %d, lastApplied %d", rf.me, rf.commitIndex, rf.lastApplied)
 			cI := rf.commitIndex
 			lA := rf.lastApplied
 			toApply := rf.log[rf.getPos(lA+1):rf.getPos(cI+1)]
@@ -833,10 +844,12 @@ func (rf *Raft) applyEntries() {
 					CommandIndex: entry.Index,
 				}
 				rf.applyCh <- msg
-				rf.lock(rf.me, "applyEntries1")
-				rf.lastApplied++
-				rf.unlock(rf.me, "applyEntries1")
 			}
+			rf.lock(rf.me, "applyEntries1")
+			if rf.lastApplied == lA {
+				rf.lastApplied = cI
+			}
+			rf.unlock(rf.me, "applyEntries1")
 			DPrintf("%d apply %v", rf.me, toApply)
 			continue
 		}
@@ -872,9 +885,6 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	}
 	rf.log = append(rf.log, empEntry) // log contains an empty entry at head
 
-	rf.commitIndex = 0
-	rf.lastApplied = 0
-
 	rf.role = follower
 	rf.numOfVote = 0
 	rf.majority = len(rf.peers)/2 + 1
@@ -882,9 +892,13 @@ func Make(peers []*labrpc.ClientEnd, me int,
 
 	rf.lastIncludedIndex = 0
 	rf.lastIncludedTerm = null
+	// rf.condCh = make(chan struct{}, 1)
 
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
+
+	rf.commitIndex = rf.lastIncludedIndex
+	rf.lastApplied = rf.lastIncludedIndex
 
 	// init timer
 	rf.resetTimer()
