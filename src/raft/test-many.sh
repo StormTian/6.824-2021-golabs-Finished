@@ -13,7 +13,7 @@ do
 
     done
 
-    sleep 140
+    sleep 130
 
     echo "finish 3 iterations."
 
