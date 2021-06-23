@@ -7,22 +7,35 @@ import (
 	"log"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 const Debug = false
 
 func DPrintf(format string, a ...interface{}) (n int, err error) {
 	if Debug {
-		log.Printf(format, a...)
+		log.Printf("kv | "+format, a...)
 	}
 	return
 }
-
 
 type Op struct {
 	// Your definitions here.
 	// Field names must start with capital letters,
 	// otherwise RPC will break.
+	Op       string // "Get" "Put" or "Append"
+	Key      string
+	Value    string // for PutAppend
+	ClientID int64
+	SeqNum   int64 // for PutAppend
+}
+
+// for transfering the executing result to the according RPC handler
+type res struct {
+	clientID int64
+	seqNum   int64
+	err      Err
+	value    string
 }
 
 type KVServer struct {
@@ -35,15 +48,151 @@ type KVServer struct {
 	maxraftstate int // snapshot if log grows this big
 
 	// Your definitions here.
+	db        map[string]string // database
+	resChan   map[int]chan res  // channels for transferring res, index -> channel
+	dupDetect map[int64]int64   // clientID -> latest seq num
 }
-
 
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
+	op := Op{
+		Op:       GetOp,
+		Key:      args.Key,
+		ClientID: args.ClientID,
+	}
+	kv.lock(kv.me, "Get")
+	index, _, isLeader := kv.rf.Start(op)
+	if !isLeader {
+		reply.Err = ErrWrongLeader
+		kv.unlock(kv.me, "Get")
+		return
+	}
+	kv.resChan[index] = make(chan res, 1)
+	kv.unlock(kv.me, "Get")
+
+	DPrintf("%d waiting for op index %d", kv.me, index)
+	// r := <-kv.resChan[index]
+	r := kv.bePoked(index)
+	if r.clientID == -1 || r.clientID != op.ClientID || r.seqNum != op.SeqNum {
+		// different req appears at the index, leader has changed
+		reply.Err = ErrFail
+		return
+	}
+	reply.Err = r.err
+	reply.Value = r.value
+	return
 }
 
 func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
+	op := Op{
+		Op:       args.Op,
+		Key:      args.Key,
+		Value:    args.Value,
+		ClientID: args.ClientID,
+		SeqNum:   args.SeqNum,
+	}
+	kv.lock(kv.me, "PutAppend")
+	index, _, isLeader := kv.rf.Start(op)
+	if !isLeader {
+		reply.Err = ErrWrongLeader
+		kv.unlock(kv.me, "PutAppend")
+		return
+	}
+	kv.resChan[index] = make(chan res, 1)
+	kv.unlock(kv.me, "PutAppend")
+
+	DPrintf("%d waiting for op index %d", kv.me, index)
+	// r := <-kv.resChan[index]
+	r := kv.bePoked(index)
+	if r.clientID == -1 || r.clientID != op.ClientID || r.seqNum != op.SeqNum {
+		reply.Err = ErrFail
+		return
+	}
+	reply.Err = r.err
+	return
+}
+
+func (kv *KVServer) bePoked(index int) res {
+	ticker := time.NewTicker(time.Second)
+	r := res{
+		clientID: -1,
+	}
+	select {
+	case r = <-kv.resChan[index]:
+		return r
+	case <-ticker.C:
+		delete(kv.resChan, index)
+		return r
+	}
+}
+
+// applier reads message from apply ch and execute it
+func (kv *KVServer) applier() {
+	for !kv.killed() {
+		m := <-kv.applyCh
+		if m.CommandValid {
+			// contains a newly committed log entry
+			op := m.Command.(Op)
+			index := m.CommandIndex
+			DPrintf("%d recv op %v index %d", kv.me, op, index)
+			r := res{
+				clientID: op.ClientID,
+				seqNum:   op.SeqNum,
+			}
+			switch op.Op {
+			case GetOp:
+				{
+					kv.lock(kv.me, "execute")
+					v, ok := kv.db[op.Key]
+					DPrintf("%d db:\n%v", kv.me, kv.db)
+					kv.unlock(kv.me, "execute")
+					if ok {
+						r.value = v
+						r.err = OK
+					} else {
+						r.value = ""
+						r.err = ErrNoKey
+					}
+				}
+			case PutOp:
+				{
+					kv.lock(kv.me, "execute")
+					latestSeqNum, ok := kv.dupDetect[op.ClientID]
+					if !ok || op.SeqNum > latestSeqNum {
+						kv.db[op.Key] = op.Value
+						DPrintf("%d db:\n%v", kv.me, kv.db)
+						kv.dupDetect[op.ClientID] = op.SeqNum
+					}
+					kv.unlock(kv.me, "execute")
+					r.err = OK
+				}
+			case AppendOp:
+				{
+					kv.lock(kv.me, "execute")
+					latestSeqNum, ok := kv.dupDetect[op.ClientID]
+					if !ok || op.SeqNum > latestSeqNum {
+						v, ok := kv.db[op.Key]
+						if ok {
+							newV := v + op.Value
+							kv.db[op.Key] = newV
+						} else {
+							kv.db[op.Key] = op.Value
+						}
+						DPrintf("%d db:\n%v", kv.me, kv.db)
+						kv.dupDetect[op.ClientID] = op.SeqNum
+					}
+					kv.unlock(kv.me, "execute")
+					r.err = OK
+				}
+			}
+			c, ok := kv.resChan[index]
+			if ok {
+				c <- r
+			}
+		}
+		// snapshot
+	}
 }
 
 //
@@ -96,6 +245,21 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
 
 	// You may need initialization code here.
+	kv.db = make(map[string]string)
+	kv.resChan = make(map[int]chan res)
+	kv.dupDetect = make(map[int64]int64)
+
+	go kv.applier()
 
 	return kv
+}
+
+func (kv *KVServer) lock(i int, msg string) {
+	kv.mu.Lock()
+	DPrintf("kv lock: %d %v", i, msg)
+}
+
+func (kv *KVServer) unlock(i int, msg string) {
+	kv.mu.Unlock()
+	DPrintf("kv unlock: %d %v", i, msg)
 }

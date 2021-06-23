@@ -3,23 +3,23 @@
 rm res -rf
 mkdir res
 
-for ((i = 0; i < 10; i++))
+for ((i = 0; i < 100; i++))
 do
 
-    for ((c = $((i*3)); c < $(( (i+1)*3)); c++))
+    for ((c = $((i*5)); c < $(( (i+1)*5)); c++))
     do                  #replace job name here
-         (go test -run 2D) &> ./res/$c &
+         (go test) &> ./res/$c &
          # sleep 5
 
     done
 
-    sleep 120
+    sleep 360
 
-    echo "finish 3 iterations."
+    echo "finish 5 iterations."
 
 done
 
-sleep 20
+sleep 50
 
 grep -nr "FAIL.*raft.*" res
 grep -nr "PASS" res

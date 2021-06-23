@@ -190,6 +190,7 @@ func partitioner(t *testing.T, cfg *config, ch chan bool, done *int32) {
 			}
 		}
 		cfg.partition(pa[0], pa[1])
+		DPrintf("partition\n%v\n%v", pa[0], pa[1])
 		time.Sleep(electionTimeout + time.Duration(rand.Int63()%200)*time.Millisecond)
 	}
 }
@@ -307,6 +308,7 @@ func GenericTest(t *testing.T, part string, nclients int, nservers int, unreliab
 			// have submitted a request in a minority.  That request
 			// won't return until that server discovers a new term
 			// has started.
+			DPrintf("connect all")
 			cfg.ConnectAll()
 			// wait for a while so that we have a new term
 			time.Sleep(electionTimeout)
@@ -330,7 +332,7 @@ func GenericTest(t *testing.T, part string, nclients int, nservers int, unreliab
 
 		// log.Printf("wait for clients\n")
 		for i := 0; i < nclients; i++ {
-			// log.Printf("read from clients %d\n", i)
+			DPrintf("read from clients %d\n", i)
 			j := <-clnts[i]
 			// if j < 10 {
 			// 	log.Printf("Warning: client %d managed to perform only %d put operations in 1 sec?\n", i, j)

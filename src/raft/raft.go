@@ -43,7 +43,7 @@ const (
 	heartbeatInterval     = 100 * time.Millisecond
 	checkElectionInterval = 20 * time.Millisecond
 	retryInterval         = 50 * time.Millisecond
-	applyInterval         = 50 * time.Millisecond
+	// applyInterval         = 40 * time.Millisecond
 )
 
 //
@@ -109,7 +109,7 @@ type Raft struct {
 
 	lastIncludedTerm  int
 	lastIncludedIndex int
-	// condCh            chan struct{}
+	informApplyCh     chan struct{}
 }
 
 // return currentTerm and whether this server
@@ -521,6 +521,10 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 			rf.commitIndex = lastNewEntryIndex
 		}
 		DPrintf("%d updates commitIndex to %d.", rf.me, rf.commitIndex)
+		// go rf.applyEntries()
+		go func() {
+			rf.informApplyCh <- struct{}{}
+		}()
 	}
 }
 
@@ -807,15 +811,19 @@ func (rf *Raft) callAppendEntries(server int, args *AppendEntriesArgs, reply *Ap
 		DPrintf("%d -> %d append success.\nnextIndex[%d] = %d, matchIndex[%d] = %d.",
 			rf.me, server, server, rf.nextIndex[server], server, rf.matchIndex[server])
 		// update commitIndex
-		if lastAppendedIndex > rf.commitIndex &&
+		if rf.matchIndex[server] > rf.commitIndex &&
 			args.Entries[len(args.Entries)-1].Term == rf.currentTerm {
 			count := 0
 			for _, mI := range rf.matchIndex {
-				if mI >= lastAppendedIndex {
+				if mI >= rf.matchIndex[server] {
 					count++
 					if count >= rf.majority-1 {
-						rf.commitIndex = lastAppendedIndex
+						rf.commitIndex = rf.matchIndex[server]
 						DPrintf("leader %d updates commitIndex to %d.", rf.me, rf.commitIndex)
+						// go rf.applyEntries()
+						go func() {
+							rf.informApplyCh <- struct{}{}
+						}()
 						break
 					}
 				}
@@ -828,7 +836,8 @@ func (rf *Raft) callAppendEntries(server int, args *AppendEntriesArgs, reply *Ap
 // check commitIndex and apply new entries to the application.
 func (rf *Raft) applyEntries() {
 	for !rf.killed() {
-		time.Sleep(applyInterval)
+		// time.Sleep(applyInterval)
+		<-rf.informApplyCh
 		rf.lock(rf.me, "applyEntries")
 		if rf.commitIndex > rf.lastApplied {
 			// exist new entries to apply
@@ -856,6 +865,34 @@ func (rf *Raft) applyEntries() {
 		rf.unlock(rf.me, "applyEntries")
 	}
 }
+
+/*
+func (rf *Raft) applyEntries() {
+	// rf.applymu.Lock()
+	// defer rf.applymu.Unlock()
+	rf.lock(rf.me, "applyEntries")
+	if rf.commitIndex > rf.lastApplied {
+		// exist new entries to apply
+		DPrintf("%d commitIndex %d, lastApplied %d", rf.me, rf.commitIndex, rf.lastApplied)
+		toApply := rf.log[rf.getPos(rf.lastApplied+1):rf.getPos(rf.commitIndex+1)]
+		rf.unlock(rf.me, "applyEntries")
+		for _, entry := range toApply {
+			msg := ApplyMsg{
+				CommandValid: true,
+				Command:      entry.Command,
+				CommandIndex: entry.Index,
+			}
+			rf.applyCh <- msg
+		}
+		rf.lock(rf.me, "applyEntries")
+		rf.lastApplied = rf.commitIndex
+		rf.unlock(rf.me, "applyEntries")
+		DPrintf("%d apply %v", rf.me, toApply)
+		return
+	}
+	rf.unlock(rf.me, "applyEntries")
+}
+*/
 
 //
 // the service or tester wants to create a Raft server. the ports
@@ -899,6 +936,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 
 	rf.commitIndex = rf.lastIncludedIndex
 	rf.lastApplied = rf.lastIncludedIndex
+	rf.informApplyCh = make(chan struct{}, 5) // 0 is ok
 
 	// init timer
 	rf.resetTimer()
