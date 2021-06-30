@@ -444,6 +444,7 @@ func TestConcurrent2(t *testing.T) {
 	atomic.StoreInt32(&done, 1)
 	for i := 0; i < n; i++ {
 		<-ch
+		DPrintf("end %d", i)
 	}
 
 	for i := 0; i < n; i++ {
@@ -512,6 +513,7 @@ func TestConcurrent3(t *testing.T) {
 	atomic.StoreInt32(&done, 1)
 	for i := 0; i < n; i++ {
 		<-ch
+		DPrintf("ending %d", i)
 	}
 
 	for i := 0; i < n; i++ {

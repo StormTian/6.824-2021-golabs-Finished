@@ -11,7 +11,7 @@ import "6.824/raft"
 import "sync"
 import "6.824/labgob"
 
-const Debug = false
+const Debug = true
 
 func DPrintf(format string, a ...interface{}) (n int, err error) {
 	if Debug {
@@ -23,8 +23,7 @@ func DPrintf(format string, a ...interface{}) (n int, err error) {
 const threshold = 100
 const (
 	fetchLatestCfgInterval = 50 * time.Millisecond
-	retryInterval          = 80 * time.Millisecond
-	waitForLastChange      = 40 * time.Millisecond
+	retryInterval          = 100 * time.Millisecond
 )
 
 type Op struct {
@@ -39,10 +38,13 @@ type Op struct {
 }
 
 type res struct {
-	clientID int64
-	seqNum   int64
-	err      Err
-	value    string
+	clientID  int64
+	seqNum    int64
+	err       Err
+	value     string
+	shard     int // for transdatareply
+	curCfgNum int // for transdatareply
+	cfgNum    int // for dealwithnewcfg
 }
 
 type ShardKV struct {
@@ -152,13 +154,12 @@ func (kv *ShardKV) applier() {
 		if m.CommandValid {
 			index := m.CommandIndex
 			DPrintf("%d-%d recv entry index %d", kv.gid, kv.me, index)
+			var r res
 			if op, ok := m.Command.(Op); ok {
 				// Get, Put or Append
 				DPrintf("%d-%d recv op %v", kv.gid, kv.me, op, index)
-				r := res{
-					clientID: op.ClientID,
-					seqNum:   op.SeqNum,
-				}
+				r.clientID = op.ClientID
+				r.seqNum = op.SeqNum
 				shard := key2shard(op.Key)
 				aimGid := kv.cfg.Shards[shard]
 				if aimGid != kv.gid {
@@ -212,15 +213,10 @@ func (kv *ShardKV) applier() {
 						}
 					}
 				}
-				kv.lock(kv.me, "resChan")
-				c, ok := kv.resChan[index]
-				kv.unlock(kv.me, "resChan")
-				if ok {
-					c <- r
-				}
 			} else if newCfg, ok := m.Command.(shardctrler.Config); ok {
 				// new config
 				kv.dealWithNewCfg(newCfg)
+				r.cfgNum = newCfg.Num
 			} else if reply, ok := m.Command.(*TransDataReply); ok {
 				kv.lock(kv.me, "combineShard")
 				if kv.cfg.Num == reply.CurCfgNum &&
@@ -228,7 +224,16 @@ func (kv *ShardKV) applier() {
 					kv.combineShard(reply)
 				}
 				kv.unlock(kv.me, "combineShard")
+				r.shard = reply.Shard
+				r.curCfgNum = reply.CurCfgNum
 			}
+			kv.lock(kv.me, "resChan")
+			c, ok := kv.resChan[index]
+			kv.unlock(kv.me, "resChan")
+			if ok {
+				c <- r
+			}
+
 			if kv.maxraftstate != -1 {
 				if kv.maxraftstate-kv.persister.RaftStateSize() < threshold {
 					kv.doSnapshot(index)
@@ -245,12 +250,15 @@ func (kv *ShardKV) applier() {
 func (kv *ShardKV) dealWithNewCfg(newCfg shardctrler.Config) {
 	for {
 		kv.lock(kv.me, "dealWithNewCfg")
-		if newCfg.Num != kv.cfg.Num+1 {
+		if newCfg.Num > kv.cfg.Num+1 {
 			// Process re-configurations one at a time, in order.
 			kv.unlock(kv.me, "dealWithNewCfg")
 			if _, _, isLeader := kv.rf.Start(newCfg); isLeader {
 				DPrintf("%d-%d put new cfg %d into log again", kv.gid, kv.me, newCfg.Num)
 			}
+			return
+		} else if newCfg.Num < kv.cfg.Num+1 {
+			kv.unlock(kv.me, "dealWithNewCfg")
 			return
 		}
 		curCfg := kv.cfg
@@ -274,6 +282,7 @@ func (kv *ShardKV) dealWithNewCfg(newCfg shardctrler.Config) {
 			for k, v := range kv.db {
 				if key2shard(k) == shard {
 					thisShardData[k] = v
+					delete(kv.db, k) // garbage collection
 				}
 			}
 			curLoseData[shard] = thisShardData
@@ -307,6 +316,10 @@ func (kv *ShardKV) changeCfg(newCfg shardctrler.Config) {
 	kv.wantShardsNum = 0
 	kv.getShardsNum = 0
 	DPrintf("%d-%d change cfg to %v", kv.gid, kv.me, kv.cfg)
+	// for no snapshot
+	if kv.cfgNumInLog < kv.cfg.Num {
+		kv.cfgNumInLog = kv.cfg.Num
+	}
 }
 
 // RaftStateSize is too large, do a snapshot
@@ -386,11 +399,27 @@ func (kv *ShardKV) fetchLatestCfg() {
 		// new cfg, put into log
 		kv.cfgNumInLog++
 		kv.unlock(kv.me, "checkNewCfg")
-		if _, _, isLeader := kv.rf.Start(latestCfg); !isLeader {
-			time.Sleep(fetchLatestCfgInterval)
+		go kv.putCfgToLog(latestCfg)
+	}
+}
+
+func (kv *ShardKV) putCfgToLog(latestCfg shardctrler.Config) {
+	for {
+		index, _, isLeader := kv.rf.Start(latestCfg)
+		if !isLeader {
+			return
+		}
+		c := make(chan res, 1)
+		kv.lock(kv.me, "putCfgToLog")
+		kv.resChan[index] = c
+		kv.unlock(kv.me, "putCfgToLog")
+		DPrintf("%d-%d put new cfg into log, index %d\n%v", kv.gid, kv.me, index, latestCfg)
+		r := kv.bePoked(c)
+		if r.cfgNum != latestCfg.Num {
+			// retry
 			continue
 		}
-		DPrintf("%d-%d put new cfg %d into log", kv.gid, kv.me, latestCfg.Num)
+		return
 	}
 }
 
@@ -409,7 +438,7 @@ func (kv *ShardKV) combineShard(reply *TransDataReply) {
 	}
 	DPrintf("%d-%d db:\n%v", kv.gid, kv.me, kv.db)
 	// inform delete
-	go kv.informClear(reply.Shard, reply.CurCfgNum, kv.cfg.Groups[reply.Gid])
+	go kv.informClean(reply.Shard, reply.CurCfgNum, kv.cfg.Groups[reply.Gid])
 	kv.startAService(reply.Shard)
 }
 
@@ -421,6 +450,7 @@ func (kv *ShardKV) startAService(shard int) {
 	kv.getShardsNum++
 	DPrintf("%d-%d starts shard %d", kv.gid, kv.me, shard)
 	// check cfg change
+	DPrintf("%d-%d want %d, get %d", kv.gid, kv.me, kv.wantShardsNum, kv.getShardsNum)
 	if kv.getShardsNum == kv.wantShardsNum {
 		kv.changeCfg(kv.nextCfg)
 	}
@@ -431,7 +461,8 @@ func (kv *ShardKV) TransData(args *TransDataArgs, reply *TransDataReply) {
 	defer kv.unlock(kv.me, "TransData")
 	thisShardData, ok := kv.loseData[args.CurCfgNum][args.Shard]
 	if !ok {
-		// data hasn't been prepared
+		// data hasn't been prepared or has been cleaned
+		DPrintf("%d-%d doesn't have [%d-%d] data", kv.gid, kv.me, args.CurCfgNum, args.Shard)
 		reply.Prepared = false
 		return
 	}
@@ -467,12 +498,13 @@ func (kv *ShardKV) askForAShard(shard int, aimGid int) {
 
 func (kv *ShardKV) callTransData(server string, args *TransDataArgs, reply *TransDataReply) {
 	for {
+		DPrintf("[callTransData] %d-%d want [%d-%d]", kv.gid, kv.me, args.CurCfgNum, args.Shard)
 		ok := kv.sendTransData(server, args, reply)
 		if !ok || !reply.Prepared {
 			// retry
 			time.Sleep(retryInterval)
 			kv.lock(kv.me, "callTransData retry")
-			if kv.cfg.Num == args.CurCfgNum {
+			if kv.cfg.Num == args.CurCfgNum && kv.cfg.Shards[args.Shard] != kv.gid {
 				kv.unlock(kv.me, "callTransData retry")
 				continue
 			} else {
@@ -481,14 +513,32 @@ func (kv *ShardKV) callTransData(server string, args *TransDataArgs, reply *Tran
 			}
 		}
 		kv.lock(kv.me, "callTransData")
-		if kv.cfg.Num != args.CurCfgNum {
-			// already change config
+		if kv.cfg.Shards[args.Shard] == kv.gid || kv.cfg.Num != args.CurCfgNum {
+			// already start service
 			kv.unlock(kv.me, "callTransData")
 			return
 		}
 		kv.unlock(kv.me, "callTransData")
-		kv.rf.Start(reply) // only leader put reply into raft log
-		DPrintf("%d-%d put shard %d data into log", kv.gid, kv.me, args.Shard)
+		go kv.putDataToLog(reply)
+		return
+	}
+}
+func (kv *ShardKV) putDataToLog(reply *TransDataReply) {
+	for {
+		index, _, isLeader := kv.rf.Start(reply)
+		if !isLeader {
+			return
+		}
+		c := make(chan res, 1)
+		kv.lock(kv.me, "putDataToLog")
+		kv.resChan[index] = c
+		kv.unlock(kv.me, "putDataToLog")
+		DPrintf("%d-%d put [%d-%d] data into log, index %d", kv.gid, kv.me, reply.CurCfgNum, reply.Shard, index)
+		r := kv.bePoked(c)
+		if r.shard != reply.Shard || r.curCfgNum != reply.CurCfgNum {
+			// retry
+			continue
+		}
 		return
 	}
 }
@@ -498,9 +548,9 @@ func (kv *ShardKV) sendTransData(server string, args *TransDataArgs, reply *Tran
 	return ok
 }
 
-func (kv *ShardKV) ClearLoseData(args *ClearLoseDataArgs, reply *ClearLoseDataReply) {
-	kv.lock(kv.me, "ClearLoseData")
-	defer kv.unlock(kv.me, "ClearLoseData")
+func (kv *ShardKV) CleanLoseData(args *ClearLoseDataArgs, reply *ClearLoseDataReply) {
+	kv.lock(kv.me, "CleanLoseData")
+	defer kv.unlock(kv.me, "CleanLoseData")
 	if _, ok := kv.loseData[args.CurCfgNum]; !ok {
 		return
 	}
@@ -511,22 +561,22 @@ func (kv *ShardKV) ClearLoseData(args *ClearLoseDataArgs, reply *ClearLoseDataRe
 	}
 }
 
-func (kv *ShardKV) informClear(shard int, curCfgNum int, aimServers []string) {
-	kv.lock(kv.me, "informClear")
+func (kv *ShardKV) informClean(shard int, curCfgNum int, aimServers []string) {
+	kv.lock(kv.me, "informClean")
 	args := &ClearLoseDataArgs{
 		Shard:     shard,
 		CurCfgNum: curCfgNum,
 	}
-	kv.unlock(kv.me, "informClear")
+	kv.unlock(kv.me, "informClean")
 	for _, server := range aimServers {
 		reply := &ClearLoseDataReply{}
-		go kv.callClearLoseData(server, args, reply)
+		go kv.callCleanLoseData(server, args, reply)
 	}
 }
 
-func (kv *ShardKV) callClearLoseData(server string, args *ClearLoseDataArgs, reply *ClearLoseDataReply) {
+func (kv *ShardKV) callCleanLoseData(server string, args *ClearLoseDataArgs, reply *ClearLoseDataReply) {
 	for {
-		ok := kv.sendClearLoseData(server, args, reply)
+		ok := kv.sendCleanLoseData(server, args, reply)
 		if !ok {
 			// retry
 			time.Sleep(retryInterval)
@@ -536,8 +586,8 @@ func (kv *ShardKV) callClearLoseData(server string, args *ClearLoseDataArgs, rep
 	}
 }
 
-func (kv *ShardKV) sendClearLoseData(server string, args *ClearLoseDataArgs, reply *ClearLoseDataReply) bool {
-	ok := kv.make_end(server).Call("ShardKV.ClearLoseData", args, reply)
+func (kv *ShardKV) sendCleanLoseData(server string, args *ClearLoseDataArgs, reply *ClearLoseDataReply) bool {
+	ok := kv.make_end(server).Call("ShardKV.CleanLoseData", args, reply)
 	return ok
 }
 
