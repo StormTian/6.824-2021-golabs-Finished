@@ -230,11 +230,12 @@ type InstallSnapshotReply struct {
 
 func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapshotReply) {
 	rf.lock(rf.me, "InstallSnapshot")
-	defer rf.unlock(rf.me, "InstallSnapshot")
+	// defer rf.unlock(rf.me, "InstallSnapshot")
 	DPrintf("be called InstallSnapshot %d -> %d", args.LeaderID, rf.me)
 	reply.Term = rf.currentTerm
 	if args.Term < rf.currentTerm {
 		DPrintf("args.Term %d < %d Term %d", args.Term, rf.me, rf.currentTerm)
+		rf.unlock(rf.me, "InstallSnapshot")
 		return
 	} else if rf.role == candidate && args.Term == rf.currentTerm ||
 		args.Term > rf.currentTerm {
@@ -244,8 +245,10 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapsho
 
 	if args.LastIncludedIndex <= rf.lastIncludedIndex {
 		DPrintf("%d -> %d stale snapshot", args.LeaderID, rf.me)
+		rf.unlock(rf.me, "InstallSnapshot")
 		return
 	}
+
 	if args.LastIncludedIndex < rf.getRealLength() &&
 		rf.log[rf.getPos(args.LastIncludedIndex)].Term == args.LastIncludedTerm {
 		// this snapshot describes a prefix of log due to retransmission or by mistake.
@@ -263,6 +266,8 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapsho
 	rf.persistAll(args.Data)
 	rf.commitIndex = rf.lastIncludedIndex
 	rf.lastApplied = rf.lastIncludedIndex
+	DPrintf("%d InstallSnapshot update commitIndex %d, lastApplied %d", rf.me, rf.commitIndex, rf.lastApplied)
+	rf.unlock(rf.me, "InstallSnapshot")
 
 	msg := ApplyMsg{
 		CommandValid:  false,
@@ -325,6 +330,9 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 	DPrintf("%d get snapshot from service", rf.me)
 	rf.lock(rf.me, "Snapshot")
 	defer rf.unlock(rf.me, "Snapshot")
+	if index<=rf.lastIncludedIndex{
+		return
+	}
 	rf.log = rf.log[rf.getPos(index):] // store the last entry as dummy entry
 	rf.lastIncludedTerm = rf.log[0].Term
 	rf.lastIncludedIndex = index
@@ -855,11 +863,11 @@ func (rf *Raft) applyEntries() {
 				rf.applyCh <- msg
 			}
 			rf.lock(rf.me, "applyEntries1")
-			if rf.lastApplied == lA {
+			if rf.lastApplied < cI {
 				rf.lastApplied = cI
 			}
-			rf.unlock(rf.me, "applyEntries1")
 			DPrintf("%d apply %v", rf.me, toApply)
+			rf.unlock(rf.me, "applyEntries1")
 			continue
 		}
 		rf.unlock(rf.me, "applyEntries")

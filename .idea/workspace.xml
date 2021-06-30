@@ -13,14 +13,16 @@
     <list default="true" id="ccfd8ab4-d98f-4f6e-98a3-a203c5641c09" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/kvraft/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/kvraft/client.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kvraft/common.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/kvraft/common.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/kvraft/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/kvraft/server.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/kvraft/test_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/kvraft/test_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/raft/out.txt" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/raft/raft.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/raft/raft.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/raft/test-many.sh" beforeDir="false" afterPath="$PROJECT_DIR$/src/raft/test-many.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/raft/test_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/raft/test_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/raft/util.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/raft/util.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/shardctrler/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/shardctrler/client.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/shardctrler/common.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/shardctrler/common.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/shardctrler/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/shardctrler/server.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/shardkv/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/shardkv/client.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/shardkv/common.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/shardkv/common.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/shardkv/config.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/shardkv/config.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/shardkv/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/shardkv/server.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,7 +62,7 @@
     <property name="go.import.settings.migrated" value="true" />
     <property name="go.sdk.automatically.set" value="true" />
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/src/kvraft" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.path.for.package.eslint" value="project" />
@@ -68,6 +70,11 @@
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="settings.editor.selected.configurable" value="ssh.settings" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\Workspace\Projs\6.824-2021-zl\src\kvraft" />
+    </key>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="SshConsoleOptionsProvider">
@@ -94,10 +101,10 @@
     <integration-enabled>true</integration-enabled>
   </component>
   <component name="WindowStateProjectService">
-    <state x="-1943" y="75" key="#Deployment" timestamp="1624267456541">
+    <state x="-1943" y="75" key="#Deployment" timestamp="1625036125450">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
-    <state x="-1943" y="75" key="#Deployment/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1624267456541" />
+    <state x="-1943" y="75" key="#Deployment/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1625036125450" />
     <state x="-1743" y="75" key="#GOPATH" timestamp="1621407632547">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
@@ -115,10 +122,10 @@
     </state>
     <state x="-1792" y="217" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1624414322526" />
     <state x="480" y="218" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1280.680/-2560.-139.2048.1112@0.0.1280.680" timestamp="1623992443418" />
-    <state x="-2467" y="-46" width="1862" height="926" key="DirDiffDialog" timestamp="1624269868346">
+    <state x="-2467" y="-46" width="1862" height="926" key="DirDiffDialog" timestamp="1625036616564">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
-    <state x="-2467" y="-46" width="1862" height="926" key="DirDiffDialog/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1624269868346" />
+    <state x="-2467" y="-46" width="1862" height="926" key="DirDiffDialog/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1625036616564" />
     <state x="-2004" y="216" key="EditFileWatcherDialog" timestamp="1623912126319">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>

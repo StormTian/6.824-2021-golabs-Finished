@@ -4,6 +4,7 @@ import (
 	"6.824/labgob"
 	"6.824/labrpc"
 	"6.824/raft"
+	"bytes"
 	"log"
 	"sync"
 	"sync/atomic"
@@ -18,6 +19,8 @@ func DPrintf(format string, a ...interface{}) (n int, err error) {
 	}
 	return
 }
+
+const threshold = 100
 
 type Op struct {
 	// Your definitions here.
@@ -51,6 +54,7 @@ type KVServer struct {
 	db        map[string]string // database
 	resChan   map[int]chan res  // channels for transferring res, index -> channel
 	dupDetect map[int64]int64   // clientID -> latest seq num
+	persister *raft.Persister
 }
 
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
@@ -67,12 +71,13 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 		kv.unlock(kv.me, "Get")
 		return
 	}
-	kv.resChan[index] = make(chan res, 1)
+	c := make(chan res, 1)
+	kv.resChan[index] = c
 	kv.unlock(kv.me, "Get")
 
-	DPrintf("%d waiting for op index %d", kv.me, index)
+	DPrintf("%d waiting for op %v index %d", kv.me, op, index)
 	// r := <-kv.resChan[index]
-	r := kv.bePoked(index)
+	r := kv.bePoked(c)
 	if r.clientID == -1 || r.clientID != op.ClientID || r.seqNum != op.SeqNum {
 		// different req appears at the index, leader has changed
 		reply.Err = ErrFail
@@ -80,7 +85,6 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	}
 	reply.Err = r.err
 	reply.Value = r.value
-	return
 }
 
 func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
@@ -99,12 +103,13 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		kv.unlock(kv.me, "PutAppend")
 		return
 	}
-	kv.resChan[index] = make(chan res, 1)
+	c := make(chan res, 1)
+	kv.resChan[index] = c
 	kv.unlock(kv.me, "PutAppend")
 
-	DPrintf("%d waiting for op index %d", kv.me, index)
+	DPrintf("%d waiting for op %v index %d", kv.me, op, index)
 	// r := <-kv.resChan[index]
-	r := kv.bePoked(index)
+	r := kv.bePoked(c)
 	if r.clientID == -1 || r.clientID != op.ClientID || r.seqNum != op.SeqNum {
 		reply.Err = ErrFail
 		return
@@ -113,16 +118,15 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	return
 }
 
-func (kv *KVServer) bePoked(index int) res {
+func (kv *KVServer) bePoked(c chan res) res {
 	ticker := time.NewTicker(time.Second)
 	r := res{
 		clientID: -1,
 	}
 	select {
-	case r = <-kv.resChan[index]:
+	case r = <-c:
 		return r
 	case <-ticker.C:
-		delete(kv.resChan, index)
 		return r
 	}
 }
@@ -186,13 +190,60 @@ func (kv *KVServer) applier() {
 					r.err = OK
 				}
 			}
+			kv.lock(kv.me, "resChan")
 			c, ok := kv.resChan[index]
+			kv.unlock(kv.me, "resChan")
 			if ok {
 				c <- r
 			}
+			if kv.maxraftstate != -1 {
+				if kv.maxraftstate-kv.persister.RaftStateSize() < threshold {
+					kv.doSnapshot(index)
+				}
+			}
 		}
-		// snapshot
+
+		if m.SnapshotValid {
+			// snapshot msg
+			kv.readSnapshot(m.Snapshot)
+		}
 	}
+}
+
+// RaftStateSize is too large, do a snapshot
+func (kv *KVServer) doSnapshot(index int) {
+	DPrintf("%d before snapshot: %d", kv.me, kv.persister.RaftStateSize())
+	w := new(bytes.Buffer)
+	e := labgob.NewEncoder(w)
+	kv.lock(kv.me, "doSnapshot")
+	e.Encode(kv.db)
+	e.Encode(kv.dupDetect)
+	kv.unlock(kv.me, "doSnapshot")
+	snapshot := w.Bytes()
+	kv.rf.Snapshot(index, snapshot)
+	DPrintf("%d after snapshot: %d", kv.me, kv.persister.RaftStateSize())
+}
+
+// be inited or get snapshot from leader
+func (kv *KVServer) readSnapshot(snapshot []byte) {
+	if snapshot == nil || len(snapshot) < 1 { // bootstrap without any state?
+		DPrintf("%d no data.", kv.me)
+		return
+	}
+	r := bytes.NewBuffer(snapshot)
+	d := labgob.NewDecoder(r)
+	var dbTmp map[string]string
+	var dupTmp map[int64]int64
+	if d.Decode(&dbTmp) != nil ||
+		d.Decode(&dupTmp) != nil {
+		DPrintf("decode snapshot fail.")
+		return
+	}
+	kv.lock(kv.me, "readSnapshot")
+	kv.db = dbTmp
+	kv.dupDetect = dupTmp
+	// DPrintf("%d read snapshot\ndb: %v\ndup: %v", kv.me, kv.db, kv.dupDetect)
+	kv.unlock(kv.me, "readSnapshot")
 }
 
 //
@@ -248,7 +299,9 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv.db = make(map[string]string)
 	kv.resChan = make(map[int]chan res)
 	kv.dupDetect = make(map[int64]int64)
+	kv.persister = persister
 
+	kv.readSnapshot(kv.persister.ReadSnapshot())
 	go kv.applier()
 
 	return kv

@@ -154,6 +154,7 @@ func (cfg *config) deleteClient(ck *Clerk) {
 
 // Shutdown i'th server of gi'th group, by isolating it
 func (cfg *config) ShutdownServer(gi int, i int) {
+	DPrintf("shutdown %d-%d", gi, i)
 	cfg.mu.Lock()
 	defer cfg.mu.Unlock()
 
@@ -195,6 +196,7 @@ func (cfg *config) ShutdownServer(gi int, i int) {
 }
 
 func (cfg *config) ShutdownGroup(gi int) {
+	DPrintf("shutdown group %d", gi)
 	for i := 0; i < cfg.n; i++ {
 		cfg.ShutdownServer(gi, i)
 	}
@@ -262,6 +264,7 @@ func (cfg *config) StartServer(gi int, i int) {
 }
 
 func (cfg *config) StartGroup(gi int) {
+	DPrintf("start group %d", gi)
 	for i := 0; i < cfg.n; i++ {
 		cfg.StartServer(gi, i)
 	}
@@ -304,6 +307,7 @@ func (cfg *config) shardclerk() *shardctrler.Clerk {
 
 // tell the shardctrler that a group is joining.
 func (cfg *config) join(gi int) {
+	DPrintf("join %d", gi)
 	cfg.joinm([]int{gi})
 }
 
@@ -322,6 +326,7 @@ func (cfg *config) joinm(gis []int) {
 
 // tell the shardctrler that a group is leaving.
 func (cfg *config) leave(gi int) {
+	DPrintf("leave %d", gi)
 	cfg.leavem([]int{gi})
 }
 

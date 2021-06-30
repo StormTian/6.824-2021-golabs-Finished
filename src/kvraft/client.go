@@ -3,9 +3,12 @@ package kvraft
 import (
 	"6.824/labrpc"
 	"sync"
+	"time"
 )
 import "crypto/rand"
 import "math/big"
+
+const retryInterval = 30*time.Millisecond
 
 type Clerk struct {
 	servers []*labrpc.ClientEnd
@@ -66,6 +69,9 @@ func (ck *Clerk) Get(key string) string {
 			return reply.Value
 		}
 		leader = (leader + 1) % ck.nums
+		if leader==0{
+			time.Sleep(retryInterval)
+		}
 	}
 }
 
@@ -103,6 +109,9 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 			return
 		}
 		leader = (leader + 1) % ck.nums
+		if leader==0{
+			time.Sleep(retryInterval)
+		}
 	}
 }
 
