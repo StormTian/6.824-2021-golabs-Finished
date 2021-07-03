@@ -511,6 +511,7 @@ func TestConcurrent3(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	atomic.StoreInt32(&done, 1)
+	DPrintf("done")
 	for i := 0; i < n; i++ {
 		<-ch
 		DPrintf("ending %d", i)

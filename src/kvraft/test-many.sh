@@ -3,17 +3,17 @@
 rm res -rf
 mkdir res
 
-for ((i = 0; i < 100; i++))
+for ((i = 0; i < 10; i++))
 do
 
     for ((c = $((i*5)); c < $(( (i+1)*5)); c++))
     do                  #replace job name here
-         (time go test -run 3A) &> ./res/$c &
+         (time go test) &> ./res/$c &
          # sleep 5
 
     done
 
-    sleep 360
+    sleep 380
 
     echo "finish 5 iterations."
 

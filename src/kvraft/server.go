@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const Debug = false
+const Debug = true
 
 func DPrintf(format string, a ...interface{}) (n int, err error) {
 	if Debug {
@@ -55,6 +55,7 @@ type KVServer struct {
 	resChan   map[int]chan res  // channels for transferring res, index -> channel
 	dupDetect map[int64]int64   // clientID -> latest seq num
 	persister *raft.Persister
+	ssIndex   int // latest index of snapshot
 }
 
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
@@ -205,6 +206,14 @@ func (kv *KVServer) applier() {
 
 		if m.SnapshotValid {
 			// snapshot msg
+			DPrintf("%d recv snapshot from leader", kv.me)
+			kv.lock(kv.me, "check snapshot op")
+			if m.SnapshotIndex <= kv.ssIndex {
+				// stale snapshot
+				kv.unlock(kv.me, "check snapshot op")
+				continue
+			}
+			kv.unlock(kv.me, "check snapshot op")
 			kv.readSnapshot(m.Snapshot)
 		}
 	}
@@ -216,8 +225,10 @@ func (kv *KVServer) doSnapshot(index int) {
 	w := new(bytes.Buffer)
 	e := labgob.NewEncoder(w)
 	kv.lock(kv.me, "doSnapshot")
+	kv.ssIndex = index
 	e.Encode(kv.db)
 	e.Encode(kv.dupDetect)
+	e.Encode(kv.ssIndex)
 	kv.unlock(kv.me, "doSnapshot")
 	snapshot := w.Bytes()
 	kv.rf.Snapshot(index, snapshot)
@@ -234,14 +245,17 @@ func (kv *KVServer) readSnapshot(snapshot []byte) {
 	d := labgob.NewDecoder(r)
 	var dbTmp map[string]string
 	var dupTmp map[int64]int64
+	var ssIndexTmp int
 	if d.Decode(&dbTmp) != nil ||
-		d.Decode(&dupTmp) != nil {
+		d.Decode(&dupTmp) != nil ||
+		d.Decode(&ssIndexTmp) != nil {
 		DPrintf("decode snapshot fail.")
 		return
 	}
 	kv.lock(kv.me, "readSnapshot")
 	kv.db = dbTmp
 	kv.dupDetect = dupTmp
+	kv.ssIndex = ssIndexTmp
 	// DPrintf("%d read snapshot\ndb: %v\ndup: %v", kv.me, kv.db, kv.dupDetect)
 	kv.unlock(kv.me, "readSnapshot")
 }
@@ -300,6 +314,7 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv.resChan = make(map[int]chan res)
 	kv.dupDetect = make(map[int64]int64)
 	kv.persister = persister
+	kv.ssIndex = -1
 
 	kv.readSnapshot(kv.persister.ReadSnapshot())
 	go kv.applier()

@@ -14,7 +14,7 @@ const (
 	ErrNoKey       = "ErrNoKey"
 	ErrWrongGroup  = "ErrWrongGroup"
 	ErrWrongLeader = "ErrWrongLeader"
-	ErrFail = "ErrFail"
+	ErrFail        = "ErrFail"
 )
 
 type Err string
@@ -23,6 +23,13 @@ const (
 	GetOp    = "Get"
 	PutOp    = "Put"
 	AppendOp = "Append"
+)
+
+// for TransData
+const (
+	Prepared    = "Prepared"
+	NotPrepared = "NotPrepared"
+	Cleaned     = "Cleaned"
 )
 
 // Put or Append
@@ -54,22 +61,22 @@ type GetReply struct {
 }
 
 type TransDataArgs struct {
-	Shard int
+	Shard     int
 	CurCfgNum int // current config num
 }
 
 type TransDataReply struct {
-	Prepared bool // data has been prepared or not
-	Shard int
+	State     string // Prepared or NotPrepared or Cleaned
+	Shard     int
 	CurCfgNum int
-	Database map[string]string
+	Database  map[string]string
 	DupDetect map[int64]int64
-	Gid int // gid of lose servers
+	Gid       int // gid of lose servers
 }
 
-type ClearLoseDataArgs struct {
-	Shard int
+type CleanLoseDataArgs struct {
 	CurCfgNum int
+	Shard     int
 }
 
-type ClearLoseDataReply struct {}
+type CleanLoseDataReply struct{}

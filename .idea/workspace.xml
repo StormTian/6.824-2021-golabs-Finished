@@ -12,9 +12,13 @@
   <component name="ChangeListManager">
     <list default="true" id="ccfd8ab4-d98f-4f6e-98a3-a203c5641c09" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shardkv/out.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/shardkv/out.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/kvraft/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/kvraft/server.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/kvraft/test-many.sh" beforeDir="false" afterPath="$PROJECT_DIR$/src/kvraft/test-many.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/shardkv/common.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/shardkv/common.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/shardkv/results/1" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/shardkv/results/4" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/shardkv/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/shardkv/server.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shardkv/test_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/shardkv/test_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/shardkv/test-many.sh" beforeDir="false" afterPath="$PROJECT_DIR$/src/shardkv/test-many.sh" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,7 +58,7 @@
     <property name="go.import.settings.migrated" value="true" />
     <property name="go.sdk.automatically.set" value="true" />
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/src/kvraft" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/src/shardkv" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.path.for.package.eslint" value="project" />
@@ -65,6 +69,7 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\Workspace\Projs\6.824-2021-zl\src\shardkv" />
       <recent name="D:\Workspace\Projs\6.824-2021-zl\src\kvraft" />
     </key>
   </component>
@@ -93,10 +98,10 @@
     <integration-enabled>true</integration-enabled>
   </component>
   <component name="WindowStateProjectService">
-    <state x="-1943" y="75" key="#Deployment" timestamp="1625036125450">
+    <state x="-1943" y="75" key="#Deployment" timestamp="1625226708976">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
-    <state x="-1943" y="75" key="#Deployment/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1625036125450" />
+    <state x="-1943" y="75" key="#Deployment/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1625226708976" />
     <state x="-1743" y="75" key="#GOPATH" timestamp="1621407632547">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
@@ -109,10 +114,10 @@
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
     <state x="-1897" y="173" width="846" height="694" key="#SSH_Configurations/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623150890242" />
-    <state x="-1792" y="217" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1624414322526">
+    <state x="-1792" y="217" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1625219890975">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
-    <state x="-1792" y="217" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1624414322526" />
+    <state x="-1792" y="217" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1625219890975" />
     <state x="480" y="218" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1280.680/-2560.-139.2048.1112@0.0.1280.680" timestamp="1623992443418" />
     <state x="-2467" y="-46" width="1862" height="926" key="DirDiffDialog" timestamp="1625036616564">
       <screen x="-2560" y="-139" width="2048" height="1112" />
@@ -130,17 +135,17 @@
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
     <state x="-2158" y="84" key="SettingsEditor/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1624437476240" />
-    <state x="-1932" y="27" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser" timestamp="1624415720177">
+    <state x="-1932" y="27" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser" timestamp="1625124120227">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
-    <state x="-1932" y="27" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1624415720177" />
+    <state x="-1932" y="27" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1625124120227" />
     <state x="-1781" y="170" key="ftp.server.browser" timestamp="1623151333716">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
     <state x="-1781" y="170" key="ftp.server.browser/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623151333716" />
-    <state x="-1873" y="104" width="672" height="678" key="search.everywhere.popup" timestamp="1624426479390">
+    <state x="-1873" y="104" width="672" height="678" key="search.everywhere.popup" timestamp="1625133994819">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
-    <state x="-1873" y="104" width="672" height="678" key="search.everywhere.popup/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1624426479390" />
+    <state x="-1873" y="104" width="672" height="678" key="search.everywhere.popup/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1625133994819" />
   </component>
 </project>
