@@ -64,6 +64,7 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 		Op:       GetOp,
 		Key:      args.Key,
 		ClientID: args.ClientID,
+		SeqNum:   args.SeqNum,
 	}
 
 	index, _, isLeader := kv.rf.Start(op)
@@ -86,6 +87,7 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	}
 	reply.Err = r.err
 	reply.Value = r.value
+	DPrintf("%d get(%v) = %v, index %d", kv.me, op.Key, reply.Value, index)
 }
 
 func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
@@ -152,9 +154,11 @@ func (kv *KVServer) applier() {
 			case GetOp:
 				{
 					kv.lock(kv.me, "execute")
+					// latestSeqNum, ok := kv.dupDetect[op.ClientID]
+					// if !ok || op.SeqNum > latestSeqNum {
 					v, ok := kv.db[op.Key]
 					DPrintf("%d get %v - %v", kv.me, op.Key, v)
-					kv.unlock(kv.me, "execute")
+					// kv.dupDetect[op.ClientID] = op.SeqNum
 					if ok {
 						r.value = v
 						r.err = OK
@@ -162,6 +166,9 @@ func (kv *KVServer) applier() {
 						r.value = ""
 						r.err = ErrNoKey
 					}
+					// }
+					kv.unlock(kv.me, "execute")
+					// r.err = OK
 				}
 			case PutOp:
 				{

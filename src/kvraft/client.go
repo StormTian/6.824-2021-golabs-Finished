@@ -8,7 +8,7 @@ import (
 import "crypto/rand"
 import "math/big"
 
-const retryInterval = 30*time.Millisecond
+const retryInterval = 30 * time.Millisecond
 
 type Clerk struct {
 	servers []*labrpc.ClientEnd
@@ -54,10 +54,13 @@ func (ck *Clerk) Get(key string) string {
 	// You will have to modify this function.
 	ck.mu.Lock()
 	leader := ck.leader
+	seq := ck.seqNum
+	ck.seqNum++
 	ck.mu.Unlock()
 	args := GetArgs{
 		Key:      key,
 		ClientID: ck.clientID,
+		SeqNum:   seq,
 	}
 	for {
 		reply := GetReply{}
@@ -66,10 +69,11 @@ func (ck *Clerk) Get(key string) string {
 			ck.mu.Lock()
 			ck.leader = leader
 			ck.mu.Unlock()
+			DPrintf("%v get[%v] = %v", ck.clientID, args.Key, reply.Value)
 			return reply.Value
 		}
 		leader = (leader + 1) % ck.nums
-		if leader==0{
+		if leader == 0 {
 			time.Sleep(retryInterval)
 		}
 	}
@@ -109,7 +113,7 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 			return
 		}
 		leader = (leader + 1) % ck.nums
-		if leader==0{
+		if leader == 0 {
 			time.Sleep(retryInterval)
 		}
 	}

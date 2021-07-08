@@ -3,23 +3,23 @@
 rm res -rf
 mkdir res
 
-for ((i = 0; i < 20; i++))
+for ((i = 0; i < 400; i++))
 do
 
-    for ((c = $((i*2)); c < $(( (i+1)*2)); c++))
+    for ((c = $((i*5)); c < $(( (i+1)*5)); c++))
     do                  #replace job name here
-         (go test -run TestPersistPartitionUnreliable3A) &> ./res/$c &
+         (go test) &> ./res/$c &
          # sleep 5
 
     done
 
-    sleep 20
+    sleep 390
 
     echo "finish 2 iterations."
 
 done
 
-sleep 5
+sleep 60
 
-grep -nr "FAIL.*raft.*" res
+grep -nr "FAIL:" res
 grep -nr "PASS" res
