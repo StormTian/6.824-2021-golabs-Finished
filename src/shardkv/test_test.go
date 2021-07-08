@@ -369,6 +369,7 @@ func TestConcurrent1(t *testing.T) {
 	atomic.StoreInt32(&done, 1)
 	for i := 0; i < n; i++ {
 		<-ch
+		DPrintf("recv %d", i)
 	}
 
 	for i := 0; i < n; i++ {

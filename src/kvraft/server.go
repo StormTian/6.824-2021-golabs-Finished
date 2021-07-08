@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const Debug = true
+const Debug = false
 
 func DPrintf(format string, a ...interface{}) (n int, err error) {
 	if Debug {
@@ -55,7 +55,7 @@ type KVServer struct {
 	resChan   map[int]chan res  // channels for transferring res, index -> channel
 	dupDetect map[int64]int64   // clientID -> latest seq num
 	persister *raft.Persister
-	ssIndex   int // latest index of snapshot
+	// recvedIndex int // latest index of snapshot
 }
 
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
@@ -65,13 +65,13 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 		Key:      args.Key,
 		ClientID: args.ClientID,
 	}
-	kv.lock(kv.me, "Get")
+
 	index, _, isLeader := kv.rf.Start(op)
 	if !isLeader {
 		reply.Err = ErrWrongLeader
-		kv.unlock(kv.me, "Get")
 		return
 	}
+	kv.lock(kv.me, "Get")
 	c := make(chan res, 1)
 	kv.resChan[index] = c
 	kv.unlock(kv.me, "Get")
@@ -97,13 +97,13 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		ClientID: args.ClientID,
 		SeqNum:   args.SeqNum,
 	}
-	kv.lock(kv.me, "PutAppend")
+
 	index, _, isLeader := kv.rf.Start(op)
 	if !isLeader {
 		reply.Err = ErrWrongLeader
-		kv.unlock(kv.me, "PutAppend")
 		return
 	}
+	kv.lock(kv.me, "PutAppend")
 	c := make(chan res, 1)
 	kv.resChan[index] = c
 	kv.unlock(kv.me, "PutAppend")
@@ -138,6 +138,9 @@ func (kv *KVServer) applier() {
 		m := <-kv.applyCh
 		if m.CommandValid {
 			// contains a newly committed log entry
+			// kv.lock(kv.me, "updateRecvedIndex")
+			// kv.recvedIndex = m.CommandIndex
+			// kv.unlock(kv.me, "updateRecvedIndex")
 			op := m.Command.(Op)
 			index := m.CommandIndex
 			DPrintf("%d recv op %v index %d", kv.me, op, index)
@@ -150,7 +153,7 @@ func (kv *KVServer) applier() {
 				{
 					kv.lock(kv.me, "execute")
 					v, ok := kv.db[op.Key]
-					DPrintf("%d db:\n%v", kv.me, kv.db)
+					DPrintf("%d get %v - %v", kv.me, op.Key, v)
 					kv.unlock(kv.me, "execute")
 					if ok {
 						r.value = v
@@ -166,7 +169,7 @@ func (kv *KVServer) applier() {
 					latestSeqNum, ok := kv.dupDetect[op.ClientID]
 					if !ok || op.SeqNum > latestSeqNum {
 						kv.db[op.Key] = op.Value
-						DPrintf("%d db:\n%v", kv.me, kv.db)
+						DPrintf("%d db[%v]=%v", kv.me, op.Key, kv.db[op.Key])
 						kv.dupDetect[op.ClientID] = op.SeqNum
 					}
 					kv.unlock(kv.me, "execute")
@@ -184,7 +187,7 @@ func (kv *KVServer) applier() {
 						} else {
 							kv.db[op.Key] = op.Value
 						}
-						DPrintf("%d db:\n%v", kv.me, kv.db)
+						DPrintf("%d db[%v]=%v", kv.me, op.Key, kv.db[op.Key])
 						kv.dupDetect[op.ClientID] = op.SeqNum
 					}
 					kv.unlock(kv.me, "execute")
@@ -206,14 +209,17 @@ func (kv *KVServer) applier() {
 
 		if m.SnapshotValid {
 			// snapshot msg
-			DPrintf("%d recv snapshot from leader", kv.me)
-			kv.lock(kv.me, "check snapshot op")
-			if m.SnapshotIndex <= kv.ssIndex {
-				// stale snapshot
+			DPrintf("%d recv snapshot %d from leader", kv.me, m.SnapshotIndex)
+			/*
+				kv.lock(kv.me, "check snapshot op")
+				if m.SnapshotIndex <= kv.recvedIndex {
+					// stale snapshot
+					DPrintf("%d recvedIndex %d, ssIndex %d, stale", kv.me, kv.recvedIndex, m.SnapshotIndex)
+					kv.unlock(kv.me, "check snapshot op")
+					continue
+				}
 				kv.unlock(kv.me, "check snapshot op")
-				continue
-			}
-			kv.unlock(kv.me, "check snapshot op")
+			*/
 			kv.readSnapshot(m.Snapshot)
 		}
 	}
@@ -225,14 +231,12 @@ func (kv *KVServer) doSnapshot(index int) {
 	w := new(bytes.Buffer)
 	e := labgob.NewEncoder(w)
 	kv.lock(kv.me, "doSnapshot")
-	kv.ssIndex = index
 	e.Encode(kv.db)
 	e.Encode(kv.dupDetect)
-	e.Encode(kv.ssIndex)
+	// e.Encode(kv.recvedIndex)
 	kv.unlock(kv.me, "doSnapshot")
 	snapshot := w.Bytes()
-	kv.rf.Snapshot(index, snapshot)
-	DPrintf("%d after snapshot: %d", kv.me, kv.persister.RaftStateSize())
+	go kv.rf.Snapshot(index, snapshot)
 }
 
 // be inited or get snapshot from leader
@@ -245,18 +249,17 @@ func (kv *KVServer) readSnapshot(snapshot []byte) {
 	d := labgob.NewDecoder(r)
 	var dbTmp map[string]string
 	var dupTmp map[int64]int64
-	var ssIndexTmp int
+	// var ssIndexTmp int
 	if d.Decode(&dbTmp) != nil ||
-		d.Decode(&dupTmp) != nil ||
-		d.Decode(&ssIndexTmp) != nil {
+		d.Decode(&dupTmp) != nil {
 		DPrintf("decode snapshot fail.")
 		return
 	}
 	kv.lock(kv.me, "readSnapshot")
 	kv.db = dbTmp
 	kv.dupDetect = dupTmp
-	kv.ssIndex = ssIndexTmp
-	// DPrintf("%d read snapshot\ndb: %v\ndup: %v", kv.me, kv.db, kv.dupDetect)
+	// kv.recvedIndex = ssIndexTmp
+	DPrintf("%d db: %v", kv.me, kv.db)
 	kv.unlock(kv.me, "readSnapshot")
 }
 
@@ -314,7 +317,7 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv.resChan = make(map[int]chan res)
 	kv.dupDetect = make(map[int64]int64)
 	kv.persister = persister
-	kv.ssIndex = -1
+	// kv.recvedIndex = -1
 
 	kv.readSnapshot(kv.persister.ReadSnapshot())
 	go kv.applier()

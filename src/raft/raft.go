@@ -249,6 +249,12 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapsho
 		return
 	}
 
+	if args.LastIncludedIndex <= rf.commitIndex {
+		DPrintf("%d -> %d prefix snapshot", args.LeaderID, rf.me)
+		rf.unlock(rf.me, "InstallSnapshot")
+		return
+	}
+
 	if args.LastIncludedIndex < rf.getRealLength() &&
 		rf.log[rf.getPos(args.LastIncludedIndex)].Term == args.LastIncludedTerm {
 		// this snapshot describes a prefix of log due to retransmission or by mistake.
@@ -264,10 +270,9 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapsho
 	rf.lastIncludedIndex = args.LastIncludedIndex
 	rf.lastIncludedTerm = args.LastIncludedTerm
 	rf.persistAll(args.Data)
-	rf.commitIndex = rf.lastIncludedIndex
-	rf.lastApplied = rf.lastIncludedIndex
-	DPrintf("%d InstallSnapshot update commitIndex %d, lastApplied %d", rf.me, rf.commitIndex, rf.lastApplied)
-	rf.unlock(rf.me, "InstallSnapshot")
+	rf.lastApplied = getMax(rf.lastApplied, rf.lastIncludedIndex)
+	rf.commitIndex = getMax(rf.commitIndex,rf.lastIncludedIndex)
+	DPrintf("%d commitIndex %d, lastApplied %d", rf.me, rf.commitIndex, rf.lastApplied)
 
 	msg := ApplyMsg{
 		CommandValid:  false,
@@ -278,6 +283,7 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapsho
 	}
 	rf.applyCh <- msg
 
+	rf.unlock(rf.me, "InstallSnapshot")
 	return
 }
 
@@ -327,7 +333,7 @@ func (rf *Raft) CondInstallSnapshot(lastIncludedTerm int, lastIncludedIndex int,
 // that index. Raft should now trim its log as much as possible.
 func (rf *Raft) Snapshot(index int, snapshot []byte) {
 	// Your code here (2D).
-	DPrintf("%d get snapshot from service", rf.me)
+	DPrintf("%d get snapshot from service, index %d", rf.me, index)
 	rf.lock(rf.me, "Snapshot")
 	defer rf.unlock(rf.me, "Snapshot")
 	if index<=rf.lastIncludedIndex{
@@ -344,6 +350,7 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 		rf.log = newLog
 	*/
 	rf.persistAll(snapshot)
+	DPrintf("%d after snapshot: %d", rf.me, rf.persister.RaftStateSize())
 }
 
 // locking
@@ -847,6 +854,8 @@ func (rf *Raft) applyEntries() {
 		// time.Sleep(applyInterval)
 		<-rf.informApplyCh
 		rf.lock(rf.me, "applyEntries")
+		// rf.lastApplied = getMax(rf.lastApplied, rf.lastIncludedIndex)
+		// rf.commitIndex = getMax(rf.commitIndex,rf.lastIncludedIndex)
 		if rf.commitIndex > rf.lastApplied {
 			// exist new entries to apply
 			DPrintf("%d commitIndex %d, lastApplied %d", rf.me, rf.commitIndex, rf.lastApplied)
@@ -871,6 +880,14 @@ func (rf *Raft) applyEntries() {
 			continue
 		}
 		rf.unlock(rf.me, "applyEntries")
+	}
+}
+
+func getMax(a, b int) int {
+	if a >= b {
+		return a
+	} else {
+		return b
 	}
 }
 

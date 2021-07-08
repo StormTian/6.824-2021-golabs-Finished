@@ -80,13 +80,12 @@ func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 		Key:      args.Key,
 		ClientID: args.ClientID,
 	}
-	kv.lock(kv.me, "Get")
 	index, _, isLeader := kv.rf.Start(op)
 	if !isLeader {
 		reply.Err = ErrWrongLeader
-		kv.unlock(kv.me, "Get")
 		return
 	}
+	kv.lock(kv.me, "Get")
 	c := make(chan res, 1)
 	kv.resChan[index] = c
 	kv.unlock(kv.me, "Get")
@@ -101,7 +100,7 @@ func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 	}
 	reply.Err = r.err
 	reply.Value = r.value
-	DPrintf("op %v index %d succeed", op, index)
+	DPrintf("op %v index %d err: %v", op, index, reply.Err)
 }
 
 func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
@@ -113,13 +112,12 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		ClientID: args.ClientID,
 		SeqNum:   args.SeqNum,
 	}
-	kv.lock(kv.me, "PutAppend")
 	index, _, isLeader := kv.rf.Start(op)
 	if !isLeader {
 		reply.Err = ErrWrongLeader
-		kv.unlock(kv.me, "PutAppend")
 		return
 	}
+	kv.lock(kv.me, "PutAppend")
 	c := make(chan res, 1)
 	kv.resChan[index] = c
 	kv.unlock(kv.me, "PutAppend")
@@ -133,7 +131,7 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		return
 	}
 	reply.Err = r.err
-	DPrintf("op %v index %d succeed", op, index)
+	DPrintf("op %v index %d err: %v", op, index, reply.Err)
 }
 
 func (kv *ShardKV) bePoked(c chan res) res {
@@ -380,9 +378,9 @@ func (kv *ShardKV) doSnapshot(index int) {
 	e.Encode(kv.ssIndex)
 	kv.unlock(kv.me, "doSnapshot")
 	snapshot := w.Bytes()
-	kv.rf.Snapshot(index, snapshot)
-	DPrintf("%d-%d raftsize after snapshot: %d", kv.gid, kv.me, kv.persister.RaftStateSize())
-	DPrintf("%d-%d snapshot size: %d", kv.gid, kv.me, len(kv.persister.ReadSnapshot()))
+	go kv.rf.Snapshot(index, snapshot)
+	// DPrintf("%d-%d raftsize after snapshot: %d", kv.gid, kv.me, kv.persister.RaftStateSize())
+	// DPrintf("%d-%d snapshot size: %d", kv.gid, kv.me, len(kv.persister.ReadSnapshot()))
 }
 
 // be inited or get snapshot from leader
@@ -628,10 +626,8 @@ func (kv *ShardKV) sendTransData(server string, args *TransDataArgs, reply *Tran
 
 func (kv *ShardKV) CleanLoseData(args *CleanLoseDataArgs, reply *CleanLoseDataReply) {
 	for {
-		kv.lock(kv.me, "CleanLoseData")
 		index, _, isLeader := kv.rf.Start(args)
 		if !isLeader {
-			kv.unlock(kv.me, "CleanLoseData")
 			time.Sleep(cleanLoseDataInterval)
 			kv.lock(kv.me, "CleanLoseData retry1")
 			if _, ok := kv.loseData[args.CurCfgNum][args.Shard]; !ok {
@@ -642,6 +638,7 @@ func (kv *ShardKV) CleanLoseData(args *CleanLoseDataArgs, reply *CleanLoseDataRe
 			kv.unlock(kv.me, "CleanLoseData retry1")
 			continue
 		}
+		kv.lock(kv.me, "CleanLoseData")
 		c := make(chan res, 1)
 		kv.resChan[index] = c
 		kv.unlock(kv.me, "CleanLoseData")
