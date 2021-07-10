@@ -3,7 +3,7 @@
 rm res -rf
 mkdir res
 
-for ((i = 0; i < 100; i++))
+for ((i = 0; i < 400; i++))
 do
 
     for ((c = $((i*5)); c < $(( (i+1)*5)); c++))
@@ -13,7 +13,7 @@ do
 
     done
 
-    sleep 360
+    sleep 300
 
     echo "finish 5 iterations."
 

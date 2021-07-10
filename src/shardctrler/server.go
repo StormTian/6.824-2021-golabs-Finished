@@ -136,7 +136,7 @@ func (sc *ShardCtrler) Query(args *QueryArgs, reply *QueryReply) {
 }
 
 func (sc *ShardCtrler) bePoked(c chan res) res {
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(500 * time.Millisecond)
 	r := res{
 		clientID: -1,
 	}
