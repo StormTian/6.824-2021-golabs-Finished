@@ -12,12 +12,6 @@
   <component name="ChangeListManager">
     <list default="true" id="ccfd8ab4-d98f-4f6e-98a3-a203c5641c09" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pass-scripts/lab4/Snipaste_2021-07-08_13-02-18.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kvraft/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/kvraft/server.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/raft/test-many.sh" beforeDir="false" afterPath="$PROJECT_DIR$/src/raft/test-many.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shardctrler/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/shardctrler/server.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shardkv/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/shardkv/server.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,7 +51,7 @@
     <property name="go.import.settings.migrated" value="true" />
     <property name="go.sdk.automatically.set" value="true" />
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/src/shardkv" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../6.824-2021-initial" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.path.for.package.eslint" value="project" />
@@ -97,10 +91,10 @@
     <integration-enabled>true</integration-enabled>
   </component>
   <component name="WindowStateProjectService">
-    <state x="-1943" y="75" key="#Deployment" timestamp="1625899339245">
+    <state x="-1943" y="75" key="#Deployment" timestamp="1626142366739">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
-    <state x="-1943" y="75" key="#Deployment/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1625899339245" />
+    <state x="-1943" y="75" key="#Deployment/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1626142366739" />
     <state x="386" y="0" key="#Deployment/0.0.1280.680@0.0.1280.680" timestamp="1625828652913" />
     <state x="-1743" y="75" key="#GOPATH" timestamp="1621407632547">
       <screen x="-2560" y="-139" width="2048" height="1112" />
@@ -128,10 +122,11 @@
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
     <state x="-2004" y="216" key="EditFileWatcherDialog/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623912126319" />
-    <state x="-1755" y="171" key="FileChooserDialogImpl" timestamp="1623150644504">
-      <screen x="-2560" y="-139" width="2048" height="1112" />
+    <state x="503" y="190" key="FileChooserDialogImpl" timestamp="1625905833802">
+      <screen x="0" y="0" width="1280" height="680" />
     </state>
     <state x="-1755" y="171" key="FileChooserDialogImpl/0.0.1280.680/-2560.-139.2048.1112@-2560.-139.2048.1112" timestamp="1623150644504" />
+    <state x="503" y="190" key="FileChooserDialogImpl/0.0.1280.680/-2560.-139.2048.1112@0.0.1280.680" timestamp="1625905833802" />
     <state x="-2158" y="84" key="SettingsEditor" timestamp="1624437476240">
       <screen x="-2560" y="-139" width="2048" height="1112" />
     </state>
