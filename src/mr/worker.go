@@ -13,9 +13,7 @@ import "log"
 import "net/rpc"
 import "hash/fnv"
 
-const (
-	waitForTasks = 30*time.Millisecond
-)
+const waitForTasks = 30 * time.Millisecond
 
 //
 // Map functions return a slice of KeyValue.
@@ -43,7 +41,6 @@ func (a ByKey) Len() int           { return len(a) }
 func (a ByKey) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByKey) Less(i, j int) bool { return a[i].Key < a[j].Key }
 
-
 //
 // main/mrworker.go calls this function.
 //
@@ -56,25 +53,24 @@ func Worker(mapf func(string, string) []KeyValue,
 	// CallExample()
 
 	for {
-		// ask for a task
-		ok, reply := callAssignATask()
+		ok, reply := callAssignATask() // ask coordinator for a task.
 		if !ok {
-			break // worker exit
+			break // worker exit.
 		}
 		if reply.Err == NoTasks {
 			time.Sleep(waitForTasks)
 			continue
 		}
 
+		// deal with the task.
 		var t string
-		// deal with the task
 		switch reply.Phase {
 		case Map:
 			{
 				t = Map
 				nReduce := reply.NReduce
 
-				// read contents and do map
+				// read contents and do map func.
 				filename := reply.Filename
 				intermediate := []KeyValue{}
 				file, err := os.Open(filename)
@@ -88,44 +84,42 @@ func Worker(mapf func(string, string) []KeyValue,
 				file.Close()
 				intermediate = mapf(filename, string(content))
 				sort.Sort(ByKey(intermediate))
-				// Dprintf("intermediate: %v", intermediate)
 
-				// partition intermediate into nReduce buckets
+				// partition intermediate into nReduce buckets.
 				partitionedInter := [][]KeyValue{} // y -> list of kv
-				for i:=0;i<nReduce;i++{
-					partitionedInter=append(partitionedInter, []KeyValue{})
+				for i := 0; i < nReduce; i++ {
+					partitionedInter = append(partitionedInter, []KeyValue{})
 				}
-				i:=0
-				for i<len(intermediate) {
-					y := ihash(intermediate[i].Key)%nReduce
-					j := i+1
-					for j<len(intermediate) && intermediate[j].Key == intermediate[i].Key {
+				i := 0
+				for i < len(intermediate) {
+					y := ihash(intermediate[i].Key) % nReduce
+					j := i + 1
+					for j < len(intermediate) && intermediate[j].Key == intermediate[i].Key {
 						j++
 					}
-					for k:=i;k<j;k++{
+					for k := i; k < j; k++ {
 						partitionedInter[y] = append(partitionedInter[y], intermediate[k])
 					}
 					i = j
 				}
 
-				// write intermediate files
+				// write intermediate files.
 				x := reply.TaskID
-				for y:=0;y<nReduce;y++{
+				for y := 0; y < nReduce; y++ {
 					ifile, _ := ioutil.TempFile("/newFS/workspace/src/6.824-2021/src", "intermediate-")
 					enc := json.NewEncoder(ifile)
 					toWrite := partitionedInter[y]
-					// Dprintf("length of toWrite: %v", len(toWrite))
 					for _, kv := range toWrite {
 						err := enc.Encode(&kv)
-						if err!=nil{
+						if err != nil {
 							Dprintf("cannot write.")
 						}
 					}
 					ifile.Close()
-					//rename
-					iname := "mr-"+strconv.Itoa(x)+"-"+strconv.Itoa(y)
+					// rename.
+					iname := "mr-" + strconv.Itoa(x) + "-" + strconv.Itoa(y)
 					err := os.Rename(ifile.Name(), iname)
-					if err!= nil{
+					if err != nil {
 						Dprintf("cannot rename: ", err)
 					}
 				}
@@ -136,10 +130,10 @@ func Worker(mapf func(string, string) []KeyValue,
 				mMap := reply.MMap
 				y := reply.TaskID
 
-				// read all kv charged by this task
+				// read all kv charged by this task.
 				kva := []KeyValue{}
-				for x:=0;x<mMap;x++{
-					filename := "mr-"+strconv.Itoa(x)+"-"+strconv.Itoa(y)
+				for x := 0; x < mMap; x++ {
+					filename := "mr-" + strconv.Itoa(x) + "-" + strconv.Itoa(y)
 					file, err := os.Open(filename)
 					if err != nil {
 						Dprintf("cannot open %v", filename)
@@ -148,16 +142,15 @@ func Worker(mapf func(string, string) []KeyValue,
 					for {
 						var kv KeyValue
 						if err := dec.Decode(&kv); err != nil {
-							// Dprintf("cannot read %v", filename)
 							break
 						}
 						kva = append(kva, kv)
 					}
 					file.Close()
 				}
-				sort.Sort(ByKey(kva)) // for deterministic output
+				sort.Sort(ByKey(kva)) // for deterministic output.
 
-				// write the output file
+				// write the output file.
 				ofile, _ := ioutil.TempFile("/newFS/workspace/src/6.824-2021/src", "out-")
 				i := 0
 				for i < len(kva) {
@@ -166,7 +159,7 @@ func Worker(mapf func(string, string) []KeyValue,
 						j++
 					}
 					values := []string{}
-					// conbine all values that belong to the key
+					// combine all values that belong to the key.
 					for k := i; k < j; k++ {
 						values = append(values, kva[k].Value)
 					}
@@ -175,10 +168,10 @@ func Worker(mapf func(string, string) []KeyValue,
 					i = j
 				}
 				ofile.Close()
-				// rename
-				oname := "mr-out-"+strconv.Itoa(y)
+				// rename.
+				oname := "mr-out-" + strconv.Itoa(y)
 				err := os.Rename(ofile.Name(), oname)
-				if err!= nil{
+				if err != nil {
 					Dprintf("cannot rename: ", err)
 				}
 			}
@@ -187,15 +180,14 @@ func Worker(mapf func(string, string) []KeyValue,
 				Dprintf("Unvalid task type.")
 				continue
 			}
-
 		}
 
-		// inform finish
+		// inform finish.
 		go callFinishATask(t, reply.TaskID)
 	}
 }
 
-// Ask coordinator for a task.
+// callAssignATask asks coordinator for a task.
 func callAssignATask() (bool, AssignATaskReply) {
 	args := AssignATaskArgs{}
 	reply := AssignATaskReply{}
@@ -203,7 +195,7 @@ func callAssignATask() (bool, AssignATaskReply) {
 	return ok, reply
 }
 
-// Inform coordinator the task has finished.
+// callFinishATask informs coordinator the task has finished.
 func callFinishATask(t string, taskID int) {
 	args := FinishATaskArgs{
 		Phase:  t,

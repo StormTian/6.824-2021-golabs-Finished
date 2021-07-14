@@ -12,13 +12,13 @@ import "time"
 import "crypto/rand"
 import "math/big"
 
-const retryInterval = 30*time.Millisecond
+const retryInterval = 30 * time.Millisecond
 
 type Clerk struct {
 	servers []*labrpc.ClientEnd
 	// Your data here.
-	nums int // number of servers
-	leader   int // current leader
+	nums     int // number of servers
+	leader   int // last leader
 	clientID int64
 	seqNum   int64 // sequence number of reqs from this client
 	mu       sync.Mutex
@@ -60,7 +60,7 @@ func (ck *Clerk) Query(num int) Config {
 			return reply.Config
 		}
 		leader = (leader + 1) % ck.nums
-		if leader==0{
+		if leader == 0 {
 			time.Sleep(retryInterval)
 		}
 	}
@@ -87,7 +87,7 @@ func (ck *Clerk) Join(servers map[int][]string) {
 			return
 		}
 		leader = (leader + 1) % ck.nums
-		if leader==0{
+		if leader == 0 {
 			time.Sleep(retryInterval)
 		}
 	}
@@ -114,7 +114,7 @@ func (ck *Clerk) Leave(gids []int) {
 			return
 		}
 		leader = (leader + 1) % ck.nums
-		if leader==0{
+		if leader == 0 {
 			time.Sleep(retryInterval)
 		}
 	}
@@ -142,7 +142,7 @@ func (ck *Clerk) Move(shard int, gid int) {
 			return
 		}
 		leader = (leader + 1) % ck.nums
-		if leader==0{
+		if leader == 0 {
 			time.Sleep(retryInterval)
 		}
 	}

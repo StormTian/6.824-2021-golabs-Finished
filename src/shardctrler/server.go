@@ -51,11 +51,10 @@ func (sc *ShardCtrler) Join(args *JoinArgs, reply *JoinReply) {
 	c := make(chan res, 1)
 	sc.resChan[index] = c
 	sc.unlock(sc.me, "Join")
-
 	DPrintf("%d waiting for op %v index %d", sc.me, args, index)
 	r := sc.bePoked(c)
 	if r.clientID == -1 || r.clientID != args.ClientID || r.seqNum != args.SeqNum {
-		// different req appears at the index, leader has changed
+		// different req appears at the index, leader has changed.
 		reply.Err = ErrFail
 		return
 	}
@@ -75,11 +74,9 @@ func (sc *ShardCtrler) Leave(args *LeaveArgs, reply *LeaveReply) {
 	c := make(chan res, 1)
 	sc.resChan[index] = c
 	sc.unlock(sc.me, "Leave")
-
 	DPrintf("%d waiting for op %v index %d", sc.me, args, index)
 	r := sc.bePoked(c)
 	if r.clientID == -1 || r.clientID != args.ClientID || r.seqNum != args.SeqNum {
-		// different req appears at the index, leader has changed
 		reply.Err = ErrFail
 		return
 	}
@@ -99,11 +96,9 @@ func (sc *ShardCtrler) Move(args *MoveArgs, reply *MoveReply) {
 	c := make(chan res, 1)
 	sc.resChan[index] = c
 	sc.unlock(sc.me, "Move")
-
 	DPrintf("%d waiting for op %v index %d", sc.me, args, index)
 	r := sc.bePoked(c)
 	if r.clientID == -1 || r.clientID != args.ClientID || r.seqNum != args.SeqNum {
-		// different req appears at the index, leader has changed
 		reply.Err = ErrFail
 		return
 	}
@@ -123,11 +118,9 @@ func (sc *ShardCtrler) Query(args *QueryArgs, reply *QueryReply) {
 	c := make(chan res, 1)
 	sc.resChan[index] = c
 	sc.unlock(sc.me, "Query")
-
 	DPrintf("%d waiting for op %v index %d", sc.me, args, index)
 	r := sc.bePoked(c)
 	if r.clientID == -1 || r.clientID != args.ClientID {
-		// different req appears at the index, leader has changed
 		reply.Err = ErrFail
 		return
 	}
@@ -148,14 +141,14 @@ func (sc *ShardCtrler) bePoked(c chan res) res {
 	}
 }
 
-// applier reads message from apply ch and execute it
+// applier reads message from applyCh and execute it.
 func (sc *ShardCtrler) applier() {
 	for {
 		m := <-sc.applyCh
 		index := m.CommandIndex
 		var r res
 		if op, ok := m.Command.(*QueryArgs); ok {
-			// query op
+			// query op.
 			DPrintf("%d recv query op %v index %d", sc.me, op, index)
 			sc.lock(sc.me, "execute")
 			var cfg Config
@@ -170,41 +163,42 @@ func (sc *ShardCtrler) applier() {
 			r.cfg = cfg
 			r.err = OK
 		} else if op, ok := m.Command.(*JoinArgs); ok {
-			// join op
+			// join op.
 			DPrintf("%d recv join op %v index %d", sc.me, op, index)
 			sc.lock(sc.me, "execute")
 			latestSeqNum, ok := sc.dupDetect[op.ClientID]
 			if !ok || op.SeqNum > latestSeqNum {
-				// execute
+				// execute the op.
 				sc.dupDetect[op.ClientID] = op.SeqNum
-				// init new config
+				// init new config.
 				lastCfg := sc.configs[len(sc.configs)-1]
 				DPrintf("last cfg:\n%v", lastCfg)
 				newCfg := Config{}
 				newCfg.Num = lastCfg.Num + 1
 				newCfg.Groups = make(map[int][]string)
+				// copy old groups.
 				for gid, servers := range lastCfg.Groups {
-					newCfg.Groups[gid] = servers // copy old groups
+					newCfg.Groups[gid] = servers
 				}
-				// get all new groups, sort them by gid
+				// get all new groups, sort them by gid.
 				newGids := []int{}
 				for gid, _ := range op.Servers {
 					newGids = append(newGids, gid)
 				}
 				sort.Ints(newGids)
 				DPrintf("new gids: %v", newGids)
-				// get old arrangement, gid -> shards list
+				// get old arrangement, gid -> shards list.
 				curArr := getArrangement(lastCfg)
 				DPrintf("current arrangement: %v", curArr)
-				// deal with new groups one by one
+				// deal with new groups one by one.
 				for i := 0; i < len(newGids); i++ {
 					newGid := newGids[i]
-					// add this group to Groups
+					// add this group to Groups.
 					newCfg.Groups[newGid] = op.Servers[newGid]
 					DPrintf("add group %d", newGid)
-					// re-config
+					// re-config.
 					if len(newCfg.Groups) == 1 {
-						// the first group
+						// the first group.
 						curArr[newGid] = []int{}
 						for i := 0; i < NShards; i++ {
 							curArr[newGid] = append(curArr[newGid], i)
@@ -224,7 +218,7 @@ func (sc *ShardCtrler) applier() {
 						DPrintf("current arrangement: %v", curArr)
 					}
 				}
-				// append new config
+				// append new config.
 				newCfg.Shards = getShards(curArr)
 				sc.configs = append(sc.configs, newCfg)
 				DPrintf("new cfg:\n%v", newCfg)
@@ -234,35 +228,35 @@ func (sc *ShardCtrler) applier() {
 			r.seqNum = op.SeqNum
 			r.err = OK
 		} else if op, ok := m.Command.(*LeaveArgs); ok {
-			// leave op
+			// leave op.
 			DPrintf("%d recv leave op %v index %d", sc.me, op, index)
 			sc.lock(sc.me, "execute")
 			latestSeqNum, ok := sc.dupDetect[op.ClientID]
 			if !ok || op.SeqNum > latestSeqNum {
-				// execute
+				// execute.
 				sc.dupDetect[op.ClientID] = op.SeqNum
-				// init new config
+				// init new config.
 				lastCfg := sc.configs[len(sc.configs)-1]
 				DPrintf("last cfg:\n%v", lastCfg)
 				newCfg := Config{}
 				newCfg.Num = lastCfg.Num + 1
 				newCfg.Groups = make(map[int][]string)
 				for gid, servers := range lastCfg.Groups {
-					newCfg.Groups[gid] = servers // copy old groups
+					newCfg.Groups[gid] = servers
 				}
-				// sort all leaving groups by gid
+				// sort all leaving groups by gid.
 				leavingGids := op.GIDs
 				sort.Ints(leavingGids)
 				DPrintf("leaving gids: %v", leavingGids)
-				// get old arrangement, gid -> shards list
+				// get old arrangement, gid -> shards list.
 				curArr := getArrangement(lastCfg)
 				DPrintf("current arrangement: %v", curArr)
-				// deal with new groups one by one
+				// deal with new groups one by one.
 				for i := 0; i < len(leavingGids); i++ {
 					leaveGid := leavingGids[i]
 					delete(newCfg.Groups, leaveGid)
 					DPrintf("delete group %d", leaveGid)
-					// re-config
+					// re-config.
 					toReArrShards := curArr[leaveGid]
 					for _, toArrShard := range toReArrShards {
 						aimGid := getSmallestGroup(curArr, leaveGid)
@@ -271,7 +265,7 @@ func (sc *ShardCtrler) applier() {
 					delete(curArr, leaveGid)
 					DPrintf("current arrangement: %v", curArr)
 				}
-				// append new config
+				// append new config.
 				newCfg.Shards = getShards(curArr)
 				sc.configs = append(sc.configs, newCfg)
 				DPrintf("new cfg:\n%v", newCfg)
@@ -281,27 +275,27 @@ func (sc *ShardCtrler) applier() {
 			r.seqNum = op.SeqNum
 			r.err = OK
 		} else if op, ok := m.Command.(*MoveArgs); ok {
-			// move op
+			// move op.
 			DPrintf("%d recv move op %v index %d", sc.me, op, index)
 			sc.lock(sc.me, "execute")
 			latestSeqNum, ok := sc.dupDetect[op.ClientID]
 			if !ok || op.SeqNum > latestSeqNum {
-				// execute
+				// execute.
 				sc.dupDetect[op.ClientID] = op.SeqNum
-				// init new config
+				// init new config.
 				lastCfg := sc.configs[len(sc.configs)-1]
 				DPrintf("last cfg:\n%v", lastCfg)
 				newCfg := Config{}
 				newCfg.Num = lastCfg.Num + 1
 				newCfg.Groups = make(map[int][]string)
 				for gid, servers := range lastCfg.Groups {
-					newCfg.Groups[gid] = servers // copy old groups
+					newCfg.Groups[gid] = servers
 				}
 				newCfg.Shards = [NShards]int{}
 				for shard, gid := range lastCfg.Shards {
 					newCfg.Shards[shard] = gid
 				}
-				newCfg.Shards[op.Shard] = op.GID // move
+				newCfg.Shards[op.Shard] = op.GID // move.
 				sc.configs = append(sc.configs, newCfg)
 				DPrintf("new cfg:\n%v", newCfg)
 			}
@@ -346,9 +340,7 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister)
 	sc.me = me
 
 	sc.configs = make([]Config, 1)
-	sc.configs[0].Groups = map[int][]string{} // Num and Shards are tolerant to be 0
-
-	// labgob.Register(Op{})
+	sc.configs[0].Groups = map[int][]string{} // Num and Shards are tolerant to be 0.
 	sc.applyCh = make(chan raft.ApplyMsg)
 	sc.rf = raft.Make(servers, me, persister, sc.applyCh)
 
@@ -367,20 +359,22 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister)
 	return sc
 }
 
+// given a config, getArrangement returns its arrangement of the shards,
+// in which the shards list is sorted.
 func getArrangement(cfg Config) (curArr map[int][]int) {
 	curArr = make(map[int][]int)
 	for gid, _ := range cfg.Groups {
-		// register the group charged for no shards also
+		// register the group charged for no shards also.
 		curArr[gid] = []int{}
 	}
 	shards := cfg.Shards
 	for shard, gid := range shards {
-		curArr[gid] = append(curArr[gid], shard) // shards list is sorted
+		curArr[gid] = append(curArr[gid], shard)
 	}
 	return curArr
 }
 
-// find the group charged for most shards with smallest gid
+// getLargestGroup finds the group charged for most shards with smallest gid.
 func getLargestGroup(curArr map[int][]int, extraGid int) int {
 	maxShards := 0
 	aimGid := 0
@@ -415,6 +409,7 @@ func getSmallestGroup(curArr map[int][]int, extraGid int) int {
 	return aimGid
 }
 
+// given an arrangement, getShards returns shards of config.
 func getShards(curArr map[int][]int) (res [NShards]int) {
 	res = [NShards]int{}
 	for gid, shards := range curArr {

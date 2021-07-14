@@ -62,16 +62,16 @@ type GetReply struct {
 
 type TransDataArgs struct {
 	Shard     int
-	CurCfgNum int // current config num
+	CurCfgNum int // current config num of the sender
 }
 
 type TransDataReply struct {
-	State     string // Prepared or NotPrepared or Cleaned
-	Shard     int
-	CurCfgNum int
-	Database  map[string]string
-	DupDetect map[int64]int64
-	Gid       int // gid of lose servers
+	State     string            // Prepared or NotPrepared or Cleaned
+	Shard     int               // same as args
+	CurCfgNum int               // same as args
+	Database  map[string]string // only needed data
+	DupDetect map[int64]int64   // all of the receiver
+	Gid       int               // gid of the receiver
 }
 
 type CleanLoseDataArgs struct {

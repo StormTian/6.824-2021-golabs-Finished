@@ -13,9 +13,9 @@ const retryInterval = 30 * time.Millisecond
 type Clerk struct {
 	servers []*labrpc.ClientEnd
 	// You will have to modify this struct.
-	nums     int // number of servers
-	leader   int // current leader
-	clientID int64
+	nums     int   // number of servers
+	leader   int   // last leader
+	clientID int64 // created by nrand
 	seqNum   int64 // sequence number of reqs from this client
 	mu       sync.Mutex
 }

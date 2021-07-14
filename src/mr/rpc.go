@@ -12,13 +12,10 @@ import (
 )
 import "strconv"
 
-const Debug = 1
 const (
-	Map = "Map"
-	Reduce = "Reduce"
-)
-
-const (
+	Debug   = 1
+	Map     = "Map"
+	Reduce  = "Reduce"
 	NoTasks = "NoTasks"
 )
 
@@ -36,15 +33,15 @@ type ExampleReply struct {
 }
 
 // Add your RPC definitions here.
-type AssignATaskArgs struct {}
+type AssignATaskArgs struct{}
 
-type AssignATaskReply struct{
+type AssignATaskReply struct {
 	Err      string
 	Phase    string // Map or Reduce
 	NReduce  int
-	MMap int
+	MMap     int
 	TaskID   int
-	Filename string // for map
+	Filename string // for Map
 }
 
 type FinishATaskArgs struct {
@@ -52,9 +49,7 @@ type FinishATaskArgs struct {
 	TaskID int
 }
 
-type FinishATaskReply struct {}
-
-
+type FinishATaskReply struct{}
 
 // Cook up a unique-ish UNIX-domain socket name
 // in /var/tmp, for the coordinator.
