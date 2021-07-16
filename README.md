@@ -3,6 +3,8 @@ Initial code is [here](https://github.com/flyrzl/6.824-golabs-2021).
 
 Complete code is on dev branch.
 
+See my coding script [here](). 
+
 See more information about MIT-6.824-2021 Distributed System Course [here](https://pdos.csail.mit.edu/6.824/schedule.html).
 
 #### Attention
